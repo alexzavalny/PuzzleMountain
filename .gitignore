@@ -1,0 +1,5 @@
+/tmp
+/node_modules
+/.DS_Store
+lichess_db_puzzle.csv
+/data

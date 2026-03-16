@@ -1,0 +1,30 @@
+# PuzzleMountain
+
+Static GitHub Pages site for climbing through the Lichess puzzle database in 50-point rating bands.
+
+## Rules
+
+- Start at the lowest indexed puzzle rating band.
+- Solve the full line correctly to move up by 50 rating points.
+- A wrong move keeps you in the same band.
+- There are no lives, penalties, or rating drops.
+
+## Build
+
+1. Generate the publishable static site:
+
+   ```bash
+   npm run build
+   ```
+
+2. Publish the generated `docs/` directory with GitHub Pages.
+
+3. For local preview, serve `docs/` with any static file server.
+
+## Notes
+
+- Source puzzle bands live in `/Users/alex/Projects/PuzzleMountain/data/puzzle_bands`.
+- `npm run build` converts the source CSV bands into browser-ready JSON under `/Users/alex/Projects/PuzzleMountain/docs/data/puzzle_bands`.
+- The published site is entirely static: no Ruby, no server routes, no backend state.
+- Runtime state lives in the URL query string using `level` and `puzzle`.
+- The puzzle board is shown after the first move from the Lichess solution line, matching the dataset specification.
