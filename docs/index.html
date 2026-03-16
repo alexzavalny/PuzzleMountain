@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PuzzleMountain</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero panel compact-hero">
+        <div>
+          <p class="eyebrow">PuzzleMountain</p>
+          <p class="intro compact-intro">Solve the line. Correct answers climb +50. Wrong answers keep the same band.</p>
+        </div>
+      </section>
+
+      <section class="panel status-panel">
+        <div>
+          <p class="label">Current band</p>
+          <p class="range"><span id="range-min">-</span> - <span id="range-max">-</span></p>
+        </div>
+        <div>
+          <p class="label">Level</p>
+          <p class="level-badge">Level <span id="level-value">-</span></p>
+          <form id="level-form" class="level-form">
+            <input id="level-input" class="level-input" type="number" min="0" step="1" value="0">
+            <button class="secondary level-button" type="submit">Go</button>
+          </form>
+        </div>
+        <div>
+          <p class="label">Rules</p>
+          <p class="rules">Unlimited lives. No rating drops. Only up or stay.</p>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="board-panel panel">
+          <div id="board" class="board"></div>
+          <p id="board-caption" class="board-caption">Select a piece, then select its destination square.</p>
+        </div>
+
+        <aside class="panel sidebar">
+          <div>
+            <p class="label">Puzzle</p>
+            <p id="puzzle-rating" class="puzzle-meta">Loading...</p>
+          </div>
+
+          <div class="message-box" id="message-box">
+            <p id="message-title" class="message-title">Loading puzzle</p>
+            <p id="message-body" class="message-body">Loading static puzzle data for your current band.</p>
+          </div>
+
+          <div class="actions">
+            <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
+            <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
+          </div>
+
+          <div class="hint">
+            <p class="label">How it works</p>
+            <p>Play the exact solution line. After every correct move, the reply is played automatically.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
