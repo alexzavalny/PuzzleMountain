@@ -1,5 +1,6 @@
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
+import crypto from "node:crypto";
 import path from "node:path";
 import readline from "node:readline";
 import { build } from "esbuild";
@@ -9,13 +10,14 @@ const sourceBandsDir = path.join(rootDir, "data", "puzzle_bands");
 const docsDir = path.join(rootDir, "docs");
 const docsBandsDir = path.join(docsDir, "data", "puzzle_bands");
 
-const pieceFiles = [
+const imageFiles = [
   "black.bishop.png",
   "black.king.png",
   "black.knight.png",
   "black.pawn.png",
   "black.queen.png",
   "black.rook.png",
+  "logo.png",
   "white.bishop.png",
   "white.king.png",
   "white.knight.png",
@@ -97,12 +99,22 @@ async function buildBandJson(csvPath, jsonPath) {
   return puzzles.length;
 }
 
+function withBuildVersion(html, buildVersion) {
+  return html
+    .replace(/\.\/styles\.css(?:\?[^"]*)?/g, `./styles.css?v=${buildVersion}`)
+    .replace(/\.\/app\.js(?:\?[^"]*)?/g, `./app.js?v=${buildVersion}`);
+}
+
 async function main() {
   await fs.rm(docsDir, { recursive: true, force: true });
   await fs.mkdir(docsBandsDir, { recursive: true });
+  const buildVersion = crypto.randomBytes(6).toString("hex");
 
-  await fs.copyFile(path.join(rootDir, "index.html"), path.join(docsDir, "index.html"));
+  const sourceHtml = await fs.readFile(path.join(rootDir, "index.html"), "utf8");
+  const outputHtml = withBuildVersion(sourceHtml, buildVersion);
+  await fs.writeFile(path.join(docsDir, "index.html"), outputHtml);
   await fs.writeFile(path.join(docsDir, ".nojekyll"), "");
+  process.stdout.write(`Build version ${buildVersion}\n`);
 
   const [baseCss, boardCss, pieceCss, appCss] = await Promise.all([
     fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.base.css"), "utf8"),
@@ -124,7 +136,7 @@ async function main() {
 
   await fs.mkdir(path.join(docsDir, "img"), { recursive: true });
   await Promise.all(
-    pieceFiles.map((file) =>
+    imageFiles.map((file) =>
       fs.copyFile(path.join(rootDir, "img", file), path.join(docsDir, "img", file))
     )
   );
