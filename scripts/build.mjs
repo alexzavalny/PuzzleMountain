@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline";
+import { build } from "esbuild";
 
 const rootDir = process.cwd();
 const sourceBandsDir = path.join(rootDir, "data", "puzzle_bands");
@@ -101,9 +102,24 @@ async function main() {
   await fs.mkdir(docsBandsDir, { recursive: true });
 
   await fs.copyFile(path.join(rootDir, "index.html"), path.join(docsDir, "index.html"));
-  await fs.copyFile(path.join(rootDir, "public", "styles.css"), path.join(docsDir, "styles.css"));
-  await fs.copyFile(path.join(rootDir, "public", "app.js"), path.join(docsDir, "app.js"));
   await fs.writeFile(path.join(docsDir, ".nojekyll"), "");
+
+  const [baseCss, boardCss, appCss] = await Promise.all([
+    fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.base.css"), "utf8"),
+    fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.brown.css"), "utf8"),
+    fs.readFile(path.join(rootDir, "public", "styles.css"), "utf8")
+  ]);
+
+  await fs.writeFile(path.join(docsDir, "styles.css"), `${baseCss}\n${boardCss}\n${appCss}`);
+  await build({
+    entryPoints: [path.join(rootDir, "public", "app.js")],
+    bundle: true,
+    format: "iife",
+    platform: "browser",
+    outfile: path.join(docsDir, "app.js"),
+    sourcemap: false,
+    minify: false
+  });
 
   await fs.mkdir(path.join(docsDir, "img"), { recursive: true });
   await Promise.all(
