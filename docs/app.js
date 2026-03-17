@@ -5472,7 +5472,7 @@
       orientation: playerColor,
       turnColor: toCgColor(chess.turn()),
       coordinates: true,
-      coordinatesOnSquares: true,
+      coordinatesOnSquares: false,
       movable: {
         color: toCgColor(chess.turn()),
         free: false,

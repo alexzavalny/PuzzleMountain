@@ -151,54 +151,6 @@ body {
   transform-origin: center center;
 }
 
-.board piece.pawn.white {
-  background-image: url("./img/white.pawn.png");
-}
-
-.board piece.knight.white {
-  background-image: url("./img/white.knight.png");
-}
-
-.board piece.bishop.white {
-  background-image: url("./img/white.bishop.png");
-}
-
-.board piece.rook.white {
-  background-image: url("./img/white.rook.png");
-}
-
-.board piece.queen.white {
-  background-image: url("./img/white.queen.png");
-}
-
-.board piece.king.white {
-  background-image: url("./img/white.king.png");
-}
-
-.board piece.pawn.black {
-  background-image: url("./img/black.pawn.png");
-}
-
-.board piece.knight.black {
-  background-image: url("./img/black.knight.png");
-}
-
-.board piece.bishop.black {
-  background-image: url("./img/black.bishop.png");
-}
-
-.board piece.rook.black {
-  background-image: url("./img/black.rook.png");
-}
-
-.board piece.queen.black {
-  background-image: url("./img/black.queen.png");
-}
-
-.board piece.king.black {
-  background-image: url("./img/black.king.png");
-}
-
 .board-caption {
   margin: 14px 0 0;
   color: var(--muted);
