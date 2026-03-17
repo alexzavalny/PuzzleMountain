@@ -104,13 +104,14 @@ async function main() {
   await fs.copyFile(path.join(rootDir, "index.html"), path.join(docsDir, "index.html"));
   await fs.writeFile(path.join(docsDir, ".nojekyll"), "");
 
-  const [baseCss, boardCss, appCss] = await Promise.all([
+  const [baseCss, boardCss, pieceCss, appCss] = await Promise.all([
     fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.base.css"), "utf8"),
     fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.brown.css"), "utf8"),
+    fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.cburnett.css"), "utf8"),
     fs.readFile(path.join(rootDir, "public", "styles.css"), "utf8")
   ]);
 
-  await fs.writeFile(path.join(docsDir, "styles.css"), `${baseCss}\n${boardCss}\n${appCss}`);
+  await fs.writeFile(path.join(docsDir, "styles.css"), `${baseCss}\n${boardCss}\n${pieceCss}\n${appCss}`);
   await build({
     entryPoints: [path.join(rootDir, "public", "app.js")],
     bundle: true,
