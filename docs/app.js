@@ -5656,7 +5656,7 @@
       },
       lastMove: currentLastMove,
       drawable: {
-        enabled: false,
+        enabled: true,
         visible: true,
         autoShapes: hintedSquare ? [{ orig: hintedSquare, brush: "green" }] : []
       }
