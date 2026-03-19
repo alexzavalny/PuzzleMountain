@@ -5791,17 +5791,22 @@
     }, 900);
   }
   function handleFailure() {
-    if (!firstAttemptState.failed) {
+    const shouldDropLevel = !firstAttemptState.failed;
+    if (shouldDropLevel) {
       recordThemeOutcome("failed");
       firstAttemptState.failed = true;
+      activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
+      updateRangeDisplay(activeBand);
+      updateUrl({ level: activeLevel, puzzleId: null });
     }
-    activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
-    updateRangeDisplay(activeBand);
-    updateUrl({ level: activeLevel, puzzleId: null });
     currentLastMove = [];
     clearHint();
     resetGroundToCurrentPosition();
-    setMessage("Wrong", "That move does not match the solution. You dropped one level.", "danger");
+    setMessage(
+      "Wrong",
+      shouldDropLevel ? "That move does not match the solution. You dropped one level." : "That move does not match the solution. You already took the level penalty for this puzzle.",
+      "danger"
+    );
     nextButton.disabled = false;
   }
   function playExpectedReplyIfNeeded() {
