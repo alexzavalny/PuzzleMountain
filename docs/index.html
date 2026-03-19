@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=b2374f76c784">
+    <link rel="stylesheet" href="./styles.css?v=3eeb5471a16b">
   </head>
   <body>
     <main class="shell">
@@ -17,25 +17,20 @@
             <img class="brand-logo" src="./img/logo.png" alt="PuzzleMountain logo">
             <p class="eyebrow">PuzzleMountain</p>
           </div>
-          <p class="intro compact-intro">Solve the line. Correct answers climb +50. Wrong answers drop one level.</p>
         </div>
 
         <div class="status-panel">
           <div>
-          <p class="label">Current band</p>
           <p class="range"><span id="range-min">-</span> - <span id="range-max">-</span></p>
           </div>
           <div>
-            <p class="label">Level</p>
             <p class="level-badge">Level <span id="level-value">-</span></p>
+          </div>
+          <div class="status-panel-side">
             <form id="level-form" class="level-form">
               <input id="level-input" class="level-input" type="number" min="0" step="1" value="0">
               <button class="secondary level-button" type="submit">Go</button>
             </form>
-          </div>
-          <div>
-            <p class="label">Rules</p>
-            <p class="rules">Correct answers climb +50. Wrong answers drop one level.</p>
           </div>
         </div>
       </section>
@@ -58,6 +53,8 @@
           </div>
 
           <div class="actions">
+            <button id="prev-button" class="secondary" type="button" disabled>Prev</button>
+            <button id="hint-button" class="secondary" type="button" disabled>Hint</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
           </div>
@@ -69,6 +66,6 @@
         </aside>
       </section>
     </main>
-    <script src="./app.js?v=b2374f76c784"></script>
+    <script src="./app.js?v=3eeb5471a16b"></script>
   </body>
 </html>

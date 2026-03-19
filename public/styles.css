@@ -100,7 +100,7 @@ body {
 
 .range {
   margin: 8px 0 0;
-  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-size: clamp(1.4rem, 3.8vw, 2.2rem);
   font-weight: 900;
 }
 
@@ -110,11 +110,16 @@ body {
   font-weight: 700;
 }
 
+.status-panel-side {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
 .level-form {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-top: 10px;
 }
 
 .level-input {
@@ -191,6 +196,7 @@ body {
   border-radius: 22px;
   background: var(--panel-strong);
   border: 1px solid rgba(109, 83, 52, 0.12);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .message-box[data-tone="success"] {
@@ -199,6 +205,12 @@ body {
 
 .message-box[data-tone="danger"] {
   border-color: rgba(157, 42, 42, 0.32);
+}
+
+.message-box[data-flash="solved"] {
+  background: #d7f3df;
+  border-color: rgba(45, 106, 79, 0.48);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
 }
 
 .message-title {
@@ -255,6 +267,12 @@ body {
   transform: none;
 }
 
+.secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .hidden {
   display: none;
 }
@@ -264,6 +282,10 @@ body {
   .status-panel,
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .status-panel-side {
+    justify-content: flex-start;
   }
 
   .brand-logo {

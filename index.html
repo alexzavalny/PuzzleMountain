@@ -17,25 +17,20 @@
             <img class="brand-logo" src="./img/logo.png" alt="PuzzleMountain logo">
             <p class="eyebrow">PuzzleMountain</p>
           </div>
-          <p class="intro compact-intro">Solve the line. Correct answers climb +50. Wrong answers drop one level.</p>
         </div>
 
         <div class="status-panel">
           <div>
-          <p class="label">Current band</p>
           <p class="range"><span id="range-min">-</span> - <span id="range-max">-</span></p>
           </div>
           <div>
-            <p class="label">Level</p>
             <p class="level-badge">Level <span id="level-value">-</span></p>
+          </div>
+          <div class="status-panel-side">
             <form id="level-form" class="level-form">
               <input id="level-input" class="level-input" type="number" min="0" step="1" value="0">
               <button class="secondary level-button" type="submit">Go</button>
             </form>
-          </div>
-          <div>
-            <p class="label">Rules</p>
-            <p class="rules">Correct answers climb +50. Wrong answers drop one level.</p>
           </div>
         </div>
       </section>
@@ -58,6 +53,8 @@
           </div>
 
           <div class="actions">
+            <button id="prev-button" class="secondary" type="button" disabled>Prev</button>
+            <button id="hint-button" class="secondary" type="button" disabled>Hint</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
           </div>

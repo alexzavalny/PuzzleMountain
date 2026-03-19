@@ -3,6 +3,8 @@ import { Chessground } from "@lichess-org/chessground";
 
 const boardElement = document.getElementById("board");
 const boardCaption = document.getElementById("board-caption");
+const prevButton = document.getElementById("prev-button");
+const hintButton = document.getElementById("hint-button");
 const nextButton = document.getElementById("next-button");
 const lichessLink = document.getElementById("lichess-link");
 const rangeMinNode = document.getElementById("range-min");
@@ -21,6 +23,7 @@ let ground = null;
 let chess = null;
 let activePuzzle = null;
 let activeBand = null;
+let currentPuzzleBand = null;
 let activeLevel = 0;
 let solutionIndex = 0;
 let solvedCurrentPuzzle = false;
@@ -28,6 +31,9 @@ let bandCache = new Map();
 let shouldRestorePuzzleFromQuery = true;
 let currentLastMove = [];
 let playerColor = "white";
+let hintedSquare = null;
+let puzzleHistory = [];
+let solvedFlashTimeout = null;
 
 function assetUrl(relativePath) {
   return new URL(relativePath, BASE_URL).toString();
@@ -38,6 +44,25 @@ function setMessage(title, body, tone = "neutral") {
   box.dataset.tone = tone;
   messageTitleNode.textContent = title;
   messageBodyNode.textContent = body;
+}
+
+function clearSolvedFlash() {
+  const box = document.getElementById("message-box");
+  delete box.dataset.flash;
+  if (solvedFlashTimeout) {
+    window.clearTimeout(solvedFlashTimeout);
+    solvedFlashTimeout = null;
+  }
+}
+
+function flashSolvedMessage() {
+  const box = document.getElementById("message-box");
+  clearSolvedFlash();
+  box.dataset.flash = "solved";
+  solvedFlashTimeout = window.setTimeout(() => {
+    delete box.dataset.flash;
+    solvedFlashTimeout = null;
+  }, 850);
 }
 
 function toCgColor(color) {
@@ -131,6 +156,30 @@ function computeDests() {
   );
 }
 
+function updateHistoryControls() {
+  prevButton.disabled = puzzleHistory.length === 0;
+}
+
+function updateHintControl() {
+  hintButton.disabled = !activePuzzle || solvedCurrentPuzzle;
+}
+
+function clearHint() {
+  hintedSquare = null;
+  updateHintControl();
+}
+
+function historyEntryForCurrentPuzzle() {
+  if (!activePuzzle || currentPuzzleBand === null) {
+    return null;
+  }
+
+  return {
+    band: currentPuzzleBand,
+    puzzle: activePuzzle
+  };
+}
+
 function syncGround() {
   const config = {
     fen: chess.fen(),
@@ -162,7 +211,14 @@ function syncGround() {
       lastMove: true,
       check: true
     },
-    lastMove: currentLastMove
+    lastMove: currentLastMove,
+    drawable: {
+      enabled: false,
+      visible: true,
+      autoShapes: hintedSquare
+        ? [{ orig: hintedSquare, brush: "green" }]
+        : []
+    }
   };
 
   if (!ground) {
@@ -214,10 +270,35 @@ function applyPuzzleToBoard(puzzle) {
   currentLastMove = [setup.from, setup.to];
   playerColor = toCgColor(chess.turn());
   boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
+  clearHint();
   syncGround();
 }
 
-async function loadPuzzle({ useQueryPuzzle = false } = {}) {
+function presentPuzzle(puzzle, band) {
+  activeBand = band;
+  currentPuzzleBand = band;
+  activePuzzle = puzzle;
+  solutionIndex = 0;
+  solvedCurrentPuzzle = false;
+  shouldRestorePuzzleFromQuery = false;
+
+  updateRangeDisplay(band);
+  updateUrl({ level: activeLevel, puzzleId: activePuzzle.id });
+  puzzleRatingNode.textContent = `Rating ${activePuzzle.rating}`;
+  lichessLink.href = activePuzzle.lichessUrl;
+  updateHistoryControls();
+  updateHintControl();
+  console.log("[PuzzleMountain] Puzzle selected", {
+    id: activePuzzle.id,
+    rating: activePuzzle.rating,
+    band,
+    level: activeLevel
+  });
+
+  applyPuzzleToBoard(activePuzzle);
+}
+
+async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
   setMessage("Loading puzzle", "Loading static puzzle data for your current band.");
   nextButton.disabled = true;
   lichessLink.classList.add("hidden");
@@ -241,29 +322,22 @@ async function loadPuzzle({ useQueryPuzzle = false } = {}) {
     throw new Error("No puzzles are available for this band.");
   }
 
-  activePuzzle = puzzle;
-  solutionIndex = 0;
-  solvedCurrentPuzzle = false;
-  shouldRestorePuzzleFromQuery = false;
+  if (pushHistory) {
+    const historyEntry = historyEntryForCurrentPuzzle();
+    if (historyEntry) {
+      puzzleHistory.push(historyEntry);
+    }
+  }
 
-  updateRangeDisplay(band);
-  updateUrl({ level: activeLevel, puzzleId: activePuzzle.id });
-  puzzleRatingNode.textContent = `Rating ${activePuzzle.rating}`;
-  lichessLink.href = activePuzzle.lichessUrl;
-  console.log("[PuzzleMountain] Puzzle selected", {
-    id: activePuzzle.id,
-    rating: activePuzzle.rating,
-    band,
-    level: activeLevel
-  });
-
-  applyPuzzleToBoard(activePuzzle);
+  presentPuzzle(puzzle, band);
   setMessage("Your move", "Find the first move of the solution line.");
 }
 
 async function handleSolved() {
   solvedCurrentPuzzle = true;
+  updateHintControl();
   setMessage("Correct", "You climbed 50 rating points. Loading the next puzzle.", "success");
+  flashSolvedMessage();
 
   activeBand = normalizedBandForLevel(activeLevel + 1);
   updateRangeDisplay(activeBand);
@@ -275,10 +349,12 @@ async function handleSolved() {
 }
 
 function handleFailure() {
+  solvedCurrentPuzzle = true;
   activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
   updateRangeDisplay(activeBand);
   updateUrl({ level: activeLevel, puzzleId: null });
   currentLastMove = [];
+  clearHint();
   syncGround();
   setMessage("Wrong", "That move does not match the solution. You dropped one level.", "danger");
   lichessLink.classList.remove("hidden");
@@ -326,6 +402,7 @@ function handleUserMove(orig, dest) {
 
   currentLastMove = [move.from, move.to];
   solutionIndex += 1;
+  clearHint();
   syncGround();
   window.setTimeout(playExpectedReplyIfNeeded, 350);
 }
@@ -338,6 +415,34 @@ function handleLoadError(error) {
 
 nextButton.addEventListener("click", () => {
   loadPuzzle().catch(handleLoadError);
+});
+
+prevButton.addEventListener("click", () => {
+  const previous = puzzleHistory.pop();
+  if (!previous) {
+    updateHistoryControls();
+    return;
+  }
+
+  nextButton.disabled = true;
+  lichessLink.classList.add("hidden");
+  presentPuzzle(previous.puzzle, previous.band);
+  setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
+});
+
+hintButton.addEventListener("click", () => {
+  if (!activePuzzle || solvedCurrentPuzzle) {
+    return;
+  }
+
+  const expected = activePuzzle.solution[solutionIndex];
+  if (!expected) {
+    return;
+  }
+
+  hintedSquare = expected.slice(0, 2);
+  syncGround();
+  setMessage("Hint", `The piece on ${hintedSquare.toUpperCase()} is the one to move.`);
 });
 
 levelForm.addEventListener("submit", (event) => {
@@ -369,4 +474,6 @@ async function init() {
   }
 }
 
+updateHistoryControls();
+updateHintControl();
 init();
