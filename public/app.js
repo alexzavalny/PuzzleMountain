@@ -56,6 +56,17 @@ function lichessUrlForColor(url, color) {
   return parsed.toString();
 }
 
+function updateLichessLink(url, color) {
+  if (!url) {
+    lichessLink.href = "#";
+    lichessLink.classList.add("hidden");
+    return;
+  }
+
+  lichessLink.href = lichessUrlForColor(url, color);
+  lichessLink.classList.remove("hidden");
+}
+
 function setMessage(title, body, tone = "neutral") {
   const box = document.getElementById("message-box");
   box.dataset.tone = tone;
@@ -432,7 +443,7 @@ function applyPuzzleToBoard(puzzle) {
   chess.move(setup);
   currentLastMove = [setup.from, setup.to];
   playerColor = toCgColor(chess.turn());
-  lichessLink.href = lichessUrlForColor(puzzle.lichessUrl, playerColor);
+  updateLichessLink(puzzle.lichessUrl, playerColor);
   boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
   clearHint();
   syncGround();
