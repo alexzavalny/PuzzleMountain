@@ -39,6 +39,13 @@ function assetUrl(relativePath) {
   return new URL(relativePath, BASE_URL).toString();
 }
 
+function lichessUrlForColor(url, color) {
+  const parsed = new URL(url);
+  const basePath = parsed.pathname.replace(/\/black$/, "");
+  parsed.pathname = color === "black" ? `${basePath}/black` : basePath;
+  return parsed.toString();
+}
+
 function setMessage(title, body, tone = "neutral") {
   const box = document.getElementById("message-box");
   box.dataset.tone = tone;
@@ -229,6 +236,17 @@ function syncGround() {
   }
 }
 
+function resetGroundToCurrentPosition() {
+  if (!ground) {
+    syncGround();
+    return;
+  }
+
+  ground.cancelMove();
+  syncGround();
+  ground.redrawAll();
+}
+
 async function loadMetadata() {
   if (metadata) {
     return metadata;
@@ -269,6 +287,7 @@ function applyPuzzleToBoard(puzzle) {
   chess.move(setup);
   currentLastMove = [setup.from, setup.to];
   playerColor = toCgColor(chess.turn());
+  lichessLink.href = lichessUrlForColor(puzzle.lichessUrl, playerColor);
   boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
   clearHint();
   syncGround();
@@ -285,7 +304,6 @@ function presentPuzzle(puzzle, band) {
   updateRangeDisplay(band);
   updateUrl({ level: activeLevel, puzzleId: activePuzzle.id });
   puzzleRatingNode.textContent = `Rating ${activePuzzle.rating}`;
-  lichessLink.href = activePuzzle.lichessUrl;
   updateHistoryControls();
   updateHintControl();
   console.log("[PuzzleMountain] Puzzle selected", {
@@ -349,13 +367,12 @@ async function handleSolved() {
 }
 
 function handleFailure() {
-  solvedCurrentPuzzle = true;
   activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
   updateRangeDisplay(activeBand);
   updateUrl({ level: activeLevel, puzzleId: null });
   currentLastMove = [];
   clearHint();
-  syncGround();
+  resetGroundToCurrentPosition();
   setMessage("Wrong", "That move does not match the solution. You dropped one level.", "danger");
   lichessLink.classList.remove("hidden");
   nextButton.disabled = false;

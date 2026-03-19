@@ -5553,6 +5553,15 @@
       ground.set(config);
     }
   }
+  function resetGroundToCurrentPosition() {
+    if (!ground) {
+      syncGround();
+      return;
+    }
+    ground.cancelMove();
+    syncGround();
+    ground.redrawAll();
+  }
   async function loadMetadata() {
     if (metadata) {
       return metadata;
@@ -5652,13 +5661,12 @@
     }, 900);
   }
   function handleFailure() {
-    solvedCurrentPuzzle = true;
     activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
     updateRangeDisplay(activeBand);
     updateUrl({ level: activeLevel, puzzleId: null });
     currentLastMove = [];
     clearHint();
-    syncGround();
+    resetGroundToCurrentPosition();
     setMessage("Wrong", "That move does not match the solution. You dropped one level.", "danger");
     lichessLink.classList.remove("hidden");
     nextButton.disabled = false;
