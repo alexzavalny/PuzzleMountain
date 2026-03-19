@@ -3,3 +3,6 @@
 /.DS_Store
 lichess_db_puzzle.csv
 data/puzzle_bands/*.csv
+/public/data/puzzle_bands/*.json
+!/public/data/puzzle_bands/
+!/public/data/puzzle_bands/*.json

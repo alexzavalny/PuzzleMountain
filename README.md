@@ -23,8 +23,9 @@ Static GitHub Pages site for climbing through the Lichess puzzle database in 50-
 
 ## Notes
 
-- Source puzzle bands live in `/Users/alex/Projects/PuzzleMountain/data/puzzle_bands`.
-- `npm run build` converts the source CSV bands into browser-ready JSON under `/Users/alex/Projects/PuzzleMountain/docs/data/puzzle_bands`.
+- Raw source CSV bands live in `/Users/alex/Projects/PuzzleMountain/data/puzzle_bands`.
+- Prebuilt puzzle-band JSON lives in `/Users/alex/Projects/PuzzleMountain/public/data/puzzle_bands`.
+- `npm run build` copies the static puzzle-band JSON into `/Users/alex/Projects/PuzzleMountain/docs/data/puzzle_bands`.
 - The published site is entirely static: no Ruby, no server routes, no backend state.
 - Runtime state lives in the URL query string using `level` and `puzzle`.
 - The puzzle board is shown after the first move from the Lichess solution line, matching the dataset specification.

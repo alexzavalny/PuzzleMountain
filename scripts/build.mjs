@@ -1,12 +1,10 @@
-import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import path from "node:path";
-import readline from "node:readline";
 import { build } from "esbuild";
 
 const rootDir = process.cwd();
-const sourceBandsDir = path.join(rootDir, "data", "puzzle_bands");
+const staticBandsDir = path.join(rootDir, "public", "data", "puzzle_bands");
 const docsDir = path.join(rootDir, "docs");
 const docsBandsDir = path.join(docsDir, "data", "puzzle_bands");
 
@@ -25,79 +23,6 @@ const imageFiles = [
   "white.queen.png",
   "white.rook.png"
 ];
-
-function parseCsvLine(line) {
-  const values = [];
-  let value = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-
-    if (char === "\"") {
-      if (inQuotes && line[index + 1] === "\"") {
-        value += "\"";
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      values.push(value);
-      value = "";
-      continue;
-    }
-
-    value += char;
-  }
-
-  values.push(value);
-  return values;
-}
-
-function normalizeGameUrl(url) {
-  return url.includes("#") ? url : `${url}#last`;
-}
-
-function rowToPuzzle(row) {
-  const moves = row[2].split(" ").filter(Boolean);
-
-  return {
-    id: row[0],
-    fen: row[1],
-    rating: Number(row[3]),
-    themes: row[7] ? row[7].split(" ").filter(Boolean) : [],
-    lichessUrl: normalizeGameUrl(row[8]),
-    setupMove: moves[0],
-    solution: moves.slice(1)
-  };
-}
-
-async function buildBandJson(csvPath, jsonPath) {
-  const puzzles = [];
-  const stream = createReadStream(csvPath, { encoding: "utf8" });
-  const lineReader = readline.createInterface({ input: stream, crlfDelay: Infinity });
-  let lineNumber = 0;
-
-  for await (const line of lineReader) {
-    lineNumber += 1;
-    if (lineNumber === 1 || !line.trim()) {
-      continue;
-    }
-
-    const row = parseCsvLine(line);
-    if (row.length < 9) {
-      continue;
-    }
-
-    puzzles.push(rowToPuzzle(row));
-  }
-
-  await fs.writeFile(jsonPath, JSON.stringify(puzzles));
-  return puzzles.length;
-}
 
 function withBuildVersion(html, buildVersion) {
   return html
@@ -141,33 +66,30 @@ async function main() {
     )
   );
 
-  const bandEntries = (await fs.readdir(sourceBandsDir))
-    .filter((entry) => /^\d+\.csv$/.test(entry))
-    .sort((left, right) => Number.parseInt(left, 10) - Number.parseInt(right, 10));
+  const metadataPath = path.join(staticBandsDir, "metadata.json");
+  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
 
-  const bandCounts = {};
-  const availableBands = [];
+  await fs.cp(staticBandsDir, docsBandsDir, { recursive: true });
 
-  for (const entry of bandEntries) {
-    const band = Number.parseInt(entry, 10);
-    const count = await buildBandJson(
-      path.join(sourceBandsDir, entry),
-      path.join(docsBandsDir, `${band}.json`)
-    );
+  const normalizedMetadata = {
+    ...metadata,
+    availableBands: Array.isArray(metadata.availableBands)
+      ? metadata.availableBands.map((band) => Number.parseInt(String(band), 10))
+      : [],
+    bandCounts:
+      metadata.bandCounts && typeof metadata.bandCounts === "object"
+        ? Object.fromEntries(
+            Object.entries(metadata.bandCounts).map(([band, count]) => [
+              String(Number.parseInt(band, 10)),
+              Number.parseInt(String(count), 10)
+            ])
+          )
+        : {}
+  };
 
-    bandCounts[band] = count;
-    availableBands.push(band);
-    process.stdout.write(`Built band ${band} (${count} puzzles)\n`);
-  }
-
-  await fs.writeFile(
-    path.join(docsBandsDir, "metadata.json"),
-    JSON.stringify({
-      bandSize: 50,
-      availableBands,
-      bandCounts,
-      lowestBand: availableBands[0] ?? 0
-    })
+  await fs.writeFile(path.join(docsBandsDir, "metadata.json"), JSON.stringify(normalizedMetadata));
+  process.stdout.write(
+    `Copied ${normalizedMetadata.availableBands.length} static puzzle bands from ${path.relative(rootDir, staticBandsDir)}\n`
   );
 }
 

@@ -511,16 +511,24 @@ async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
 }
 
 async function handleSolved() {
-  if (!firstAttemptState.failed) {
+  const shouldIncreaseLevel = !firstAttemptState.failed;
+
+  if (shouldIncreaseLevel) {
     recordThemeOutcome("solved");
   }
 
   solvedCurrentPuzzle = true;
   updateHintControl();
-  setMessage("Correct", "You climbed 50 rating points. Loading the next puzzle.", "success");
+  setMessage(
+    "Correct",
+    shouldIncreaseLevel
+      ? "You climbed 50 rating points. Loading the next puzzle."
+      : "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle.",
+    "success"
+  );
   flashSolvedMessage();
 
-  activeBand = normalizedBandForLevel(activeLevel + 1);
+  activeBand = normalizedBandForLevel(shouldIncreaseLevel ? activeLevel + 1 : activeLevel);
   updateRangeDisplay(activeBand);
   updateUrl({ level: activeLevel, puzzleId: null });
 
