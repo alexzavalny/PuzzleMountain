@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=3eeb5471a16b">
+    <link rel="stylesheet" href="./styles.css?v=d72afed9b758">
   </head>
   <body>
     <main class="shell">
@@ -55,6 +55,7 @@
           <div class="actions">
             <button id="prev-button" class="secondary" type="button" disabled>Prev</button>
             <button id="hint-button" class="secondary" type="button" disabled>Hint</button>
+            <button id="stats-button" class="secondary" type="button">Stats</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
           </div>
@@ -66,6 +67,31 @@
         </aside>
       </section>
     </main>
-    <script src="./app.js?v=3eeb5471a16b"></script>
+
+    <dialog id="stats-modal" class="stats-modal">
+      <div class="stats-modal-card">
+        <div class="stats-modal-header">
+          <div>
+            <p class="label">Theme stats</p>
+            <h2 class="stats-modal-title">Strong themes and weak themes</h2>
+          </div>
+          <button id="stats-close-button" class="secondary" type="button">Close</button>
+        </div>
+
+        <div class="stats-columns">
+          <section>
+            <h3 class="stats-column-title">Strong themes</h3>
+            <div id="strong-themes" class="stats-list"></div>
+          </section>
+
+          <section>
+            <h3 class="stats-column-title">Weak themes</h3>
+            <div id="weak-themes" class="stats-list"></div>
+          </section>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="./app.js?v=d72afed9b758"></script>
   </body>
 </html>

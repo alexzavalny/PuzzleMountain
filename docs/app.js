@@ -5363,6 +5363,7 @@
   var boardCaption = document.getElementById("board-caption");
   var prevButton = document.getElementById("prev-button");
   var hintButton = document.getElementById("hint-button");
+  var statsButton = document.getElementById("stats-button");
   var nextButton = document.getElementById("next-button");
   var lichessLink = document.getElementById("lichess-link");
   var rangeMinNode = document.getElementById("range-min");
@@ -5373,7 +5374,12 @@
   var puzzleRatingNode = document.getElementById("puzzle-rating");
   var messageTitleNode = document.getElementById("message-title");
   var messageBodyNode = document.getElementById("message-body");
+  var statsModal = document.getElementById("stats-modal");
+  var statsCloseButton = document.getElementById("stats-close-button");
+  var strongThemesNode = document.getElementById("strong-themes");
+  var weakThemesNode = document.getElementById("weak-themes");
   var BASE_URL = new URL(".", window.location.href);
+  var THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
   var metadata = null;
   var ground = null;
   var chess = null;
@@ -5390,8 +5396,18 @@
   var hintedSquare = null;
   var puzzleHistory = [];
   var solvedFlashTimeout = null;
+  var firstAttemptState = {
+    failed: false,
+    recorded: false
+  };
   function assetUrl(relativePath) {
     return new URL(relativePath, BASE_URL).toString();
+  }
+  function lichessUrlForColor(url, color) {
+    const parsed = new URL(url);
+    const basePath = parsed.pathname.replace(/\/black$/, "");
+    parsed.pathname = color === "black" ? `${basePath}/black` : basePath;
+    return parsed.toString();
   }
   function setMessage(title, body, tone = "neutral") {
     const box = document.getElementById("message-box");
@@ -5430,6 +5446,105 @@
     activeLevel = level;
     levelValueNode.textContent = level;
     levelInput.value = level;
+  }
+  function readThemeStats() {
+    try {
+      const raw = window.localStorage.getItem(THEME_STATS_STORAGE_KEY);
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      console.warn("[PuzzleMountain] Could not read theme stats", error);
+      return {};
+    }
+  }
+  function writeThemeStats(stats) {
+    try {
+      window.localStorage.setItem(THEME_STATS_STORAGE_KEY, JSON.stringify(stats));
+    } catch (error) {
+      console.warn("[PuzzleMountain] Could not persist theme stats", error);
+    }
+  }
+  function formatThemeLabel(theme) {
+    return theme.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+  function recordThemeOutcome(outcome) {
+    if (!activePuzzle || firstAttemptState.recorded) {
+      return;
+    }
+    const themes = Array.isArray(activePuzzle.themes) ? activePuzzle.themes : [];
+    if (!themes.length) {
+      firstAttemptState.recorded = true;
+      return;
+    }
+    const stats = readThemeStats();
+    themes.forEach((theme) => {
+      const current = stats[theme] && typeof stats[theme] === "object" ? stats[theme] : {};
+      const solved = Number.isFinite(current.solved) ? current.solved : 0;
+      const failed = Number.isFinite(current.failed) ? current.failed : 0;
+      stats[theme] = {
+        solved: solved + (outcome === "solved" ? 1 : 0),
+        failed: failed + (outcome === "failed" ? 1 : 0)
+      };
+    });
+    writeThemeStats(stats);
+    firstAttemptState.recorded = true;
+  }
+  function rankedThemes(stats, predicate, sorter) {
+    return Object.entries(stats).map(([theme, counts]) => {
+      const solved = Number.isFinite(counts?.solved) ? counts.solved : 0;
+      const failed = Number.isFinite(counts?.failed) ? counts.failed : 0;
+      const total = solved + failed;
+      const successRate = total > 0 ? solved / total : 0;
+      return {
+        theme,
+        solved,
+        failed,
+        total,
+        successRate
+      };
+    }).filter((entry) => entry.total > 0).filter(predicate).sort(sorter).slice(0, 8);
+  }
+  function renderThemeList(node2, items, emptyMessage) {
+    if (!items.length) {
+      node2.innerHTML = `<p class="stats-empty">${emptyMessage}</p>`;
+      return;
+    }
+    node2.innerHTML = items.map(
+      (item) => `
+        <article class="stats-item">
+          <div class="stats-item-header">
+            <p class="stats-item-title">${formatThemeLabel(item.theme)}</p>
+            <p class="stats-item-score">${Math.round(item.successRate * 100)}%</p>
+          </div>
+          <p class="stats-item-meta">Solved first try: ${item.solved} \xB7 Mistakes: ${item.failed}</p>
+        </article>
+      `
+    ).join("");
+  }
+  function renderThemeStats() {
+    const stats = readThemeStats();
+    const strongThemes = rankedThemes(
+      stats,
+      (entry) => entry.solved > entry.failed,
+      (left, right) => right.successRate - left.successRate || right.solved - left.solved || left.failed - right.failed || left.theme.localeCompare(right.theme)
+    );
+    const weakThemes = rankedThemes(
+      stats,
+      (entry) => entry.failed >= entry.solved,
+      (left, right) => right.failed - left.failed || left.successRate - right.successRate || right.total - left.total || left.theme.localeCompare(right.theme)
+    );
+    renderThemeList(strongThemesNode, strongThemes, "No strong themes yet. Solve a few puzzles on the first try.");
+    renderThemeList(weakThemesNode, weakThemes, "No weak themes yet. Your mistakes will show up here.");
+  }
+  function openStatsModal() {
+    renderThemeStats();
+    statsModal.showModal();
+  }
+  function closeStatsModal() {
+    statsModal.close();
   }
   function updateRangeDisplay(band) {
     activeBand = band;
@@ -5596,6 +5711,7 @@
     chess.move(setup);
     currentLastMove = [setup.from, setup.to];
     playerColor = toCgColor(chess.turn());
+    lichessLink.href = lichessUrlForColor(puzzle.lichessUrl, playerColor);
     boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
     clearHint();
     syncGround();
@@ -5607,10 +5723,13 @@
     solutionIndex = 0;
     solvedCurrentPuzzle = false;
     shouldRestorePuzzleFromQuery = false;
+    firstAttemptState = {
+      failed: false,
+      recorded: false
+    };
     updateRangeDisplay(band);
     updateUrl({ level: activeLevel, puzzleId: activePuzzle.id });
     puzzleRatingNode.textContent = `Rating ${activePuzzle.rating}`;
-    lichessLink.href = activePuzzle.lichessUrl;
     updateHistoryControls();
     updateHintControl();
     console.log("[PuzzleMountain] Puzzle selected", {
@@ -5624,7 +5743,6 @@
   async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
     setMessage("Loading puzzle", "Loading static puzzle data for your current band.");
     nextButton.disabled = true;
-    lichessLink.classList.add("hidden");
     const band = activeBand ?? normalizedBandForLevel(parsedLevelFromQuery() ?? levelForBand(metadata.lowestBand));
     updateRangeDisplay(band);
     console.log("[PuzzleMountain] Loading puzzle", {
@@ -5649,6 +5767,9 @@
     setMessage("Your move", "Find the first move of the solution line.");
   }
   async function handleSolved() {
+    if (!firstAttemptState.failed) {
+      recordThemeOutcome("solved");
+    }
     solvedCurrentPuzzle = true;
     updateHintControl();
     setMessage("Correct", "You climbed 50 rating points. Loading the next puzzle.", "success");
@@ -5661,6 +5782,10 @@
     }, 900);
   }
   function handleFailure() {
+    if (!firstAttemptState.failed) {
+      recordThemeOutcome("failed");
+      firstAttemptState.failed = true;
+    }
     activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
     updateRangeDisplay(activeBand);
     updateUrl({ level: activeLevel, puzzleId: null });
@@ -5668,7 +5793,6 @@
     clearHint();
     resetGroundToCurrentPosition();
     setMessage("Wrong", "That move does not match the solution. You dropped one level.", "danger");
-    lichessLink.classList.remove("hidden");
     nextButton.disabled = false;
   }
   function playExpectedReplyIfNeeded() {
@@ -5724,7 +5848,6 @@
       return;
     }
     nextButton.disabled = true;
-    lichessLink.classList.add("hidden");
     presentPuzzle(previous.puzzle, previous.band);
     setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
   });
@@ -5739,6 +5862,21 @@
     hintedSquare = expected.slice(0, 2);
     syncGround();
     setMessage("Hint", `The piece on ${hintedSquare.toUpperCase()} is the one to move.`);
+  });
+  statsButton.addEventListener("click", () => {
+    openStatsModal();
+  });
+  statsCloseButton.addEventListener("click", () => {
+    closeStatsModal();
+  });
+  statsModal.addEventListener("click", (event) => {
+    if (event.target === statsModal) {
+      closeStatsModal();
+    }
+  });
+  statsModal.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeStatsModal();
   });
   levelForm.addEventListener("submit", (event) => {
     event.preventDefault();

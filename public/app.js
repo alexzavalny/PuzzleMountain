@@ -5,6 +5,7 @@ const boardElement = document.getElementById("board");
 const boardCaption = document.getElementById("board-caption");
 const prevButton = document.getElementById("prev-button");
 const hintButton = document.getElementById("hint-button");
+const statsButton = document.getElementById("stats-button");
 const nextButton = document.getElementById("next-button");
 const lichessLink = document.getElementById("lichess-link");
 const rangeMinNode = document.getElementById("range-min");
@@ -15,8 +16,13 @@ const levelInput = document.getElementById("level-input");
 const puzzleRatingNode = document.getElementById("puzzle-rating");
 const messageTitleNode = document.getElementById("message-title");
 const messageBodyNode = document.getElementById("message-body");
+const statsModal = document.getElementById("stats-modal");
+const statsCloseButton = document.getElementById("stats-close-button");
+const strongThemesNode = document.getElementById("strong-themes");
+const weakThemesNode = document.getElementById("weak-themes");
 
 const BASE_URL = new URL(".", window.location.href);
+const THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
 
 let metadata = null;
 let ground = null;
@@ -34,6 +40,10 @@ let playerColor = "white";
 let hintedSquare = null;
 let puzzleHistory = [];
 let solvedFlashTimeout = null;
+let firstAttemptState = {
+  failed: false,
+  recorded: false
+};
 
 function assetUrl(relativePath) {
   return new URL(relativePath, BASE_URL).toString();
@@ -89,6 +99,141 @@ function updateLevel(band) {
   activeLevel = level;
   levelValueNode.textContent = level;
   levelInput.value = level;
+}
+
+function readThemeStats() {
+  try {
+    const raw = window.localStorage.getItem(THEME_STATS_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    console.warn("[PuzzleMountain] Could not read theme stats", error);
+    return {};
+  }
+}
+
+function writeThemeStats(stats) {
+  try {
+    window.localStorage.setItem(THEME_STATS_STORAGE_KEY, JSON.stringify(stats));
+  } catch (error) {
+    console.warn("[PuzzleMountain] Could not persist theme stats", error);
+  }
+}
+
+function formatThemeLabel(theme) {
+  return theme
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function recordThemeOutcome(outcome) {
+  if (!activePuzzle || firstAttemptState.recorded) {
+    return;
+  }
+
+  const themes = Array.isArray(activePuzzle.themes) ? activePuzzle.themes : [];
+  if (!themes.length) {
+    firstAttemptState.recorded = true;
+    return;
+  }
+
+  const stats = readThemeStats();
+
+  themes.forEach((theme) => {
+    const current = stats[theme] && typeof stats[theme] === "object" ? stats[theme] : {};
+    const solved = Number.isFinite(current.solved) ? current.solved : 0;
+    const failed = Number.isFinite(current.failed) ? current.failed : 0;
+    stats[theme] = {
+      solved: solved + (outcome === "solved" ? 1 : 0),
+      failed: failed + (outcome === "failed" ? 1 : 0)
+    };
+  });
+
+  writeThemeStats(stats);
+  firstAttemptState.recorded = true;
+}
+
+function rankedThemes(stats, predicate, sorter) {
+  return Object.entries(stats)
+    .map(([theme, counts]) => {
+      const solved = Number.isFinite(counts?.solved) ? counts.solved : 0;
+      const failed = Number.isFinite(counts?.failed) ? counts.failed : 0;
+      const total = solved + failed;
+      const successRate = total > 0 ? solved / total : 0;
+
+      return {
+        theme,
+        solved,
+        failed,
+        total,
+        successRate
+      };
+    })
+    .filter((entry) => entry.total > 0)
+    .filter(predicate)
+    .sort(sorter)
+    .slice(0, 8);
+}
+
+function renderThemeList(node, items, emptyMessage) {
+  if (!items.length) {
+    node.innerHTML = `<p class="stats-empty">${emptyMessage}</p>`;
+    return;
+  }
+
+  node.innerHTML = items
+    .map(
+      (item) => `
+        <article class="stats-item">
+          <div class="stats-item-header">
+            <p class="stats-item-title">${formatThemeLabel(item.theme)}</p>
+            <p class="stats-item-score">${Math.round(item.successRate * 100)}%</p>
+          </div>
+          <p class="stats-item-meta">Solved first try: ${item.solved} · Mistakes: ${item.failed}</p>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderThemeStats() {
+  const stats = readThemeStats();
+  const strongThemes = rankedThemes(
+    stats,
+    (entry) => entry.solved > entry.failed,
+    (left, right) =>
+      right.successRate - left.successRate ||
+      right.solved - left.solved ||
+      left.failed - right.failed ||
+      left.theme.localeCompare(right.theme)
+  );
+  const weakThemes = rankedThemes(
+    stats,
+    (entry) => entry.failed >= entry.solved,
+    (left, right) =>
+      right.failed - left.failed ||
+      left.successRate - right.successRate ||
+      right.total - left.total ||
+      left.theme.localeCompare(right.theme)
+  );
+
+  renderThemeList(strongThemesNode, strongThemes, "No strong themes yet. Solve a few puzzles on the first try.");
+  renderThemeList(weakThemesNode, weakThemes, "No weak themes yet. Your mistakes will show up here.");
+}
+
+function openStatsModal() {
+  renderThemeStats();
+  statsModal.showModal();
+}
+
+function closeStatsModal() {
+  statsModal.close();
 }
 
 function updateRangeDisplay(band) {
@@ -300,6 +445,10 @@ function presentPuzzle(puzzle, band) {
   solutionIndex = 0;
   solvedCurrentPuzzle = false;
   shouldRestorePuzzleFromQuery = false;
+  firstAttemptState = {
+    failed: false,
+    recorded: false
+  };
 
   updateRangeDisplay(band);
   updateUrl({ level: activeLevel, puzzleId: activePuzzle.id });
@@ -319,7 +468,6 @@ function presentPuzzle(puzzle, band) {
 async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
   setMessage("Loading puzzle", "Loading static puzzle data for your current band.");
   nextButton.disabled = true;
-  lichessLink.classList.add("hidden");
 
   const band = activeBand ?? normalizedBandForLevel(parsedLevelFromQuery() ?? levelForBand(metadata.lowestBand));
   updateRangeDisplay(band);
@@ -352,6 +500,10 @@ async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
 }
 
 async function handleSolved() {
+  if (!firstAttemptState.failed) {
+    recordThemeOutcome("solved");
+  }
+
   solvedCurrentPuzzle = true;
   updateHintControl();
   setMessage("Correct", "You climbed 50 rating points. Loading the next puzzle.", "success");
@@ -367,6 +519,11 @@ async function handleSolved() {
 }
 
 function handleFailure() {
+  if (!firstAttemptState.failed) {
+    recordThemeOutcome("failed");
+    firstAttemptState.failed = true;
+  }
+
   activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
   updateRangeDisplay(activeBand);
   updateUrl({ level: activeLevel, puzzleId: null });
@@ -374,7 +531,6 @@ function handleFailure() {
   clearHint();
   resetGroundToCurrentPosition();
   setMessage("Wrong", "That move does not match the solution. You dropped one level.", "danger");
-  lichessLink.classList.remove("hidden");
   nextButton.disabled = false;
 }
 
@@ -442,7 +598,6 @@ prevButton.addEventListener("click", () => {
   }
 
   nextButton.disabled = true;
-  lichessLink.classList.add("hidden");
   presentPuzzle(previous.puzzle, previous.band);
   setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
 });
@@ -460,6 +615,25 @@ hintButton.addEventListener("click", () => {
   hintedSquare = expected.slice(0, 2);
   syncGround();
   setMessage("Hint", `The piece on ${hintedSquare.toUpperCase()} is the one to move.`);
+});
+
+statsButton.addEventListener("click", () => {
+  openStatsModal();
+});
+
+statsCloseButton.addEventListener("click", () => {
+  closeStatsModal();
+});
+
+statsModal.addEventListener("click", (event) => {
+  if (event.target === statsModal) {
+    closeStatsModal();
+  }
+});
+
+statsModal.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeStatsModal();
 });
 
 levelForm.addEventListener("submit", (event) => {
