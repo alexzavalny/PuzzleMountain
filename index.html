@@ -37,6 +37,10 @@
 
       <section class="workspace">
         <div class="board-panel panel">
+          <div id="board-loader" class="board-loader hidden" aria-live="polite" aria-busy="true">
+            <div class="board-loader-spinner" aria-hidden="true"></div>
+            <p id="board-loader-label" class="board-loader-label">Loading puzzle band...</p>
+          </div>
           <div id="board" class="board"></div>
           <p id="board-caption" class="board-caption">Select a piece, then select its destination square.</p>
         </div>

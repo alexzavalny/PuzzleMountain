@@ -2,6 +2,8 @@ import { Chess } from "chess.js";
 import { Chessground } from "@lichess-org/chessground";
 
 const boardElement = document.getElementById("board");
+const boardLoader = document.getElementById("board-loader");
+const boardLoaderLabel = document.getElementById("board-loader-label");
 const boardCaption = document.getElementById("board-caption");
 const prevButton = document.getElementById("prev-button");
 const hintButton = document.getElementById("hint-button");
@@ -23,6 +25,7 @@ const weakThemesNode = document.getElementById("weak-themes");
 
 const BASE_URL = new URL(".", window.location.href);
 const THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
+const SOLVED_MESSAGE_DELAY_MS = 1400;
 
 let metadata = null;
 let ground = null;
@@ -40,6 +43,7 @@ let playerColor = "white";
 let hintedSquare = null;
 let puzzleHistory = [];
 let solvedFlashTimeout = null;
+let preloadingBands = new Set();
 let firstAttemptState = {
   failed: false,
   recorded: false
@@ -81,6 +85,16 @@ function clearSolvedFlash() {
     window.clearTimeout(solvedFlashTimeout);
     solvedFlashTimeout = null;
   }
+}
+
+function setBoardLoadingState(isLoading, label = "Loading puzzle band...") {
+  if (!boardLoader || !boardLoaderLabel) {
+    return;
+  }
+
+  boardLoaderLabel.textContent = label;
+  boardLoader.classList.toggle("hidden", !isLoading);
+  boardElement.setAttribute("aria-busy", isLoading ? "true" : "false");
 }
 
 function flashSolvedMessage() {
@@ -437,6 +451,32 @@ async function loadBand(band) {
   return puzzles;
 }
 
+function prefetchBand(band) {
+  if (!Number.isFinite(band) || bandCache.has(band) || preloadingBands.has(band)) {
+    return;
+  }
+
+  preloadingBands.add(band);
+  loadBand(band)
+    .catch((error) => {
+      console.warn("[PuzzleMountain] Band prefetch failed", { band, error });
+    })
+    .finally(() => {
+      preloadingBands.delete(band);
+    });
+}
+
+function prefetchLikelyNextBand() {
+  if (!metadata) {
+    return;
+  }
+
+  const nextBand = normalizedBandForLevel(activeLevel + 1);
+  if (nextBand !== activeBand) {
+    prefetchBand(nextBand);
+  }
+}
+
 function applyPuzzleToBoard(puzzle) {
   chess = new Chess(puzzle.fen);
   const setup = uciToMove(puzzle.setupMove);
@@ -474,6 +514,7 @@ function presentPuzzle(puzzle, band) {
   });
 
   applyPuzzleToBoard(activePuzzle);
+  prefetchLikelyNextBand();
 }
 
 async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
@@ -489,25 +530,34 @@ async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
     requestedPuzzleId: useQueryPuzzle ? puzzleIdFromQuery() : null
   });
 
-  const puzzles = await loadBand(band);
-  const requestedPuzzleId = useQueryPuzzle ? puzzleIdFromQuery() : null;
-  const puzzle =
-    puzzles.find((candidate) => candidate.id === requestedPuzzleId) ??
-    pickRandomPuzzle(puzzles, activePuzzle && activeBand === band ? activePuzzle.id : null);
-
-  if (!puzzle) {
-    throw new Error("No puzzles are available for this band.");
+  const bandIsCached = bandCache.has(band);
+  if (!bandIsCached) {
+    setBoardLoadingState(true, "Loading puzzle band...");
   }
 
-  if (pushHistory) {
-    const historyEntry = historyEntryForCurrentPuzzle();
-    if (historyEntry) {
-      puzzleHistory.push(historyEntry);
+  try {
+    const puzzles = await loadBand(band);
+    const requestedPuzzleId = useQueryPuzzle ? puzzleIdFromQuery() : null;
+    const puzzle =
+      puzzles.find((candidate) => candidate.id === requestedPuzzleId) ??
+      pickRandomPuzzle(puzzles, activePuzzle && activeBand === band ? activePuzzle.id : null);
+
+    if (!puzzle) {
+      throw new Error("No puzzles are available for this band.");
     }
-  }
 
-  presentPuzzle(puzzle, band);
-  setMessage("Your move", "Find the first move of the solution line.");
+    if (pushHistory) {
+      const historyEntry = historyEntryForCurrentPuzzle();
+      if (historyEntry) {
+        puzzleHistory.push(historyEntry);
+      }
+    }
+
+    presentPuzzle(puzzle, band);
+    setMessage("Your move", "Find the first move of the solution line.");
+  } finally {
+    setBoardLoadingState(false);
+  }
 }
 
 async function handleSolved() {
@@ -534,7 +584,7 @@ async function handleSolved() {
 
   window.setTimeout(() => {
     loadPuzzle().catch(handleLoadError);
-  }, 900);
+  }, SOLVED_MESSAGE_DELAY_MS);
 }
 
 function handleFailure() {
@@ -611,6 +661,7 @@ function handleUserMove(orig, dest) {
 function handleLoadError(error) {
   console.error("[PuzzleMountain] Load error", error);
   nextButton.disabled = false;
+  setBoardLoadingState(false);
   setMessage("Load failed", error.message, "danger");
 }
 
@@ -695,4 +746,5 @@ async function init() {
 
 updateHistoryControls();
 updateHintControl();
+setBoardLoadingState(true, "Preparing board...");
 init();

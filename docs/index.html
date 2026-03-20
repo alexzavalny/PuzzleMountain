@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=8eb2d8b5dbcd">
+    <link rel="stylesheet" href="./styles.css?v=2850aaa4f91c">
   </head>
   <body>
     <main class="shell">
@@ -37,6 +37,10 @@
 
       <section class="workspace">
         <div class="board-panel panel">
+          <div id="board-loader" class="board-loader hidden" aria-live="polite" aria-busy="true">
+            <div class="board-loader-spinner" aria-hidden="true"></div>
+            <p id="board-loader-label" class="board-loader-label">Loading puzzle band...</p>
+          </div>
           <div id="board" class="board"></div>
           <p id="board-caption" class="board-caption">Select a piece, then select its destination square.</p>
         </div>
@@ -92,6 +96,6 @@
       </div>
     </dialog>
 
-    <script src="./app.js?v=8eb2d8b5dbcd"></script>
+    <script src="./app.js?v=2850aaa4f91c"></script>
   </body>
 </html>
