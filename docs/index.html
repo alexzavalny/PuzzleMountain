@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=2850aaa4f91c">
+    <link rel="stylesheet" href="./styles.css?v=c048d5b8b0ad">
   </head>
   <body>
     <main class="shell">
@@ -59,6 +59,10 @@
           <div class="actions">
             <button id="prev-button" class="secondary" type="button" disabled>Prev</button>
             <button id="hint-button" class="secondary" type="button" disabled>Hint</button>
+            <label class="toggle-chip" for="flip-toggle">
+              <input id="flip-toggle" class="toggle-chip-input" type="checkbox">
+              <span class="toggle-chip-label">Flip</span>
+            </label>
             <button id="stats-button" class="secondary" type="button">Stats</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
@@ -96,6 +100,6 @@
       </div>
     </dialog>
 
-    <script src="./app.js?v=2850aaa4f91c"></script>
+    <script src="./app.js?v=c048d5b8b0ad"></script>
   </body>
 </html>

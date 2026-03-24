@@ -7,6 +7,7 @@ const boardLoaderLabel = document.getElementById("board-loader-label");
 const boardCaption = document.getElementById("board-caption");
 const prevButton = document.getElementById("prev-button");
 const hintButton = document.getElementById("hint-button");
+const flipToggle = document.getElementById("flip-toggle");
 const statsButton = document.getElementById("stats-button");
 const nextButton = document.getElementById("next-button");
 const lichessLink = document.getElementById("lichess-link");
@@ -40,6 +41,7 @@ let bandCache = new Map();
 let shouldRestorePuzzleFromQuery = true;
 let currentLastMove = [];
 let playerColor = "white";
+let isBoardFlipped = false;
 let hintedSquare = null;
 let puzzleHistory = [];
 let solvedFlashTimeout = null;
@@ -357,10 +359,18 @@ function historyEntryForCurrentPuzzle() {
   };
 }
 
+function boardOrientation() {
+  if (!isBoardFlipped) {
+    return playerColor;
+  }
+
+  return playerColor === "white" ? "black" : "white";
+}
+
 function syncGround() {
   const config = {
     fen: chess.fen(),
-    orientation: playerColor,
+    orientation: boardOrientation(),
     turnColor: toCgColor(chess.turn()),
     coordinates: true,
     coordinatesOnSquares: false,
@@ -694,6 +704,16 @@ hintButton.addEventListener("click", () => {
   hintedSquare = expected.slice(0, 2);
   syncGround();
   setMessage("Hint", `The piece on ${hintedSquare.toUpperCase()} is the one to move.`);
+});
+
+flipToggle.addEventListener("change", () => {
+  isBoardFlipped = flipToggle.checked;
+
+  if (!chess) {
+    return;
+  }
+
+  syncGround();
 });
 
 statsButton.addEventListener("click", () => {

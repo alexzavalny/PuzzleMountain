@@ -267,6 +267,35 @@ body {
   gap: 12px;
 }
 
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid rgba(109, 83, 52, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.toggle-chip:hover {
+  transform: translateY(-1px);
+}
+
+.toggle-chip-input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.toggle-chip-label {
+  line-height: 1;
+}
+
 .stats-modal {
   width: min(860px, calc(100% - 24px));
   border: 0;
