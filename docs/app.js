@@ -5365,7 +5365,10 @@
   var boardCaption = document.getElementById("board-caption");
   var prevButton = document.getElementById("prev-button");
   var hintButton = document.getElementById("hint-button");
+  var settingsButton = document.getElementById("settings-button");
+  var settingsDropdown = document.getElementById("settings-dropdown");
   var flipToggle = document.getElementById("flip-toggle");
+  var makeLastMoveToggle = document.getElementById("make-last-move-toggle");
   var statsButton = document.getElementById("stats-button");
   var nextButton = document.getElementById("next-button");
   var lichessLink = document.getElementById("lichess-link");
@@ -5384,6 +5387,7 @@
   var BASE_URL = new URL(".", window.location.href);
   var THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
   var SOLVED_MESSAGE_DELAY_MS = 1400;
+  var SETUP_MOVE_REPLAY_DELAY_MS = 450;
   var metadata = null;
   var ground = null;
   var chess = null;
@@ -5398,9 +5402,12 @@
   var currentLastMove = [];
   var playerColor = "white";
   var isBoardFlipped = false;
+  var shouldAnimateSetupMove = false;
+  var isAnimatingSetupMove = false;
   var hintedSquare = null;
   var puzzleHistory = [];
   var solvedFlashTimeout = null;
+  var setupMoveReplayTimeout = null;
   var preloadingBands = /* @__PURE__ */ new Set();
   var firstAttemptState = {
     failed: false,
@@ -5631,7 +5638,7 @@
     prevButton.disabled = puzzleHistory.length === 0;
   }
   function updateHintControl() {
-    hintButton.disabled = !activePuzzle || solvedCurrentPuzzle;
+    hintButton.disabled = !activePuzzle || solvedCurrentPuzzle || isAnimatingSetupMove;
   }
   function clearHint() {
     hintedSquare = null;
@@ -5652,7 +5659,36 @@
     }
     return playerColor === "white" ? "black" : "white";
   }
+  function clearSetupMoveReplay() {
+    if (!setupMoveReplayTimeout) {
+      return;
+    }
+    window.clearTimeout(setupMoveReplayTimeout);
+    setupMoveReplayTimeout = null;
+  }
+  function closeSettingsMenu() {
+    settingsDropdown.classList.add("hidden");
+    settingsButton.setAttribute("aria-expanded", "false");
+  }
+  function openSettingsMenu() {
+    settingsDropdown.classList.remove("hidden");
+    settingsButton.setAttribute("aria-expanded", "true");
+  }
+  function syncFlipAccessibilityState() {
+    syncMenuCheckboxState(flipToggle);
+  }
+  function syncMakeLastMoveAccessibilityState() {
+    syncMenuCheckboxState(makeLastMoveToggle);
+  }
+  function syncMenuCheckboxState(input) {
+    const option = input.closest(".settings-option");
+    if (!option) {
+      return;
+    }
+    option.setAttribute("aria-checked", input.checked ? "true" : "false");
+  }
   function syncGround() {
+    const canInteract = !isAnimatingSetupMove;
     const config = {
       fen: chess.fen(),
       orientation: boardOrientation(),
@@ -5660,20 +5696,20 @@
       coordinates: true,
       coordinatesOnSquares: false,
       movable: {
-        color: toCgColor(chess.turn()),
+        color: canInteract ? toCgColor(chess.turn()) : void 0,
         free: false,
-        dests: computeDests(),
+        dests: canInteract ? computeDests() : /* @__PURE__ */ new Map(),
         showDests: true,
         events: {
           after: handleUserMove
         }
       },
       draggable: {
-        enabled: true,
+        enabled: canInteract,
         showGhost: true
       },
       selectable: {
-        enabled: true
+        enabled: canInteract
       },
       animation: {
         enabled: true,
@@ -5754,18 +5790,42 @@
       prefetchBand(nextBand);
     }
   }
-  function applyPuzzleToBoard(puzzle) {
-    chess = new Chess(puzzle.fen);
+  async function applyPuzzleToBoard(puzzle) {
+    clearSetupMoveReplay();
+    isAnimatingSetupMove = false;
     const setup = uciToMove(puzzle.setupMove);
-    chess.move(setup);
-    currentLastMove = [setup.from, setup.to];
-    playerColor = toCgColor(chess.turn());
+    const readyPosition = new Chess(puzzle.fen);
+    readyPosition.move(setup);
+    playerColor = toCgColor(readyPosition.turn());
     updateLichessLink(puzzle.lichessUrl, playerColor);
-    boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
     clearHint();
+    if (!shouldAnimateSetupMove) {
+      chess = readyPosition;
+      currentLastMove = [setup.from, setup.to];
+      boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
+      syncGround();
+      return;
+    }
+    chess = new Chess(puzzle.fen);
+    currentLastMove = [];
+    isAnimatingSetupMove = true;
+    boardCaption.textContent = "Replaying the move that led to this puzzle.";
+    updateHintControl();
     syncGround();
+    await new Promise((resolve) => {
+      setupMoveReplayTimeout = window.setTimeout(() => {
+        setupMoveReplayTimeout = null;
+        chess.move(setup);
+        currentLastMove = [setup.from, setup.to];
+        isAnimatingSetupMove = false;
+        boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
+        updateHintControl();
+        syncGround();
+        resolve();
+      }, SETUP_MOVE_REPLAY_DELAY_MS);
+    });
   }
-  function presentPuzzle(puzzle, band) {
+  async function presentPuzzle(puzzle, band) {
     activeBand = band;
     currentPuzzleBand = band;
     activePuzzle = puzzle;
@@ -5787,7 +5847,7 @@
       band,
       level: activeLevel
     });
-    applyPuzzleToBoard(activePuzzle);
+    await applyPuzzleToBoard(activePuzzle);
     prefetchLikelyNextBand();
   }
   async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
@@ -5818,7 +5878,10 @@
           puzzleHistory.push(historyEntry);
         }
       }
-      presentPuzzle(puzzle, band);
+      if (shouldAnimateSetupMove) {
+        setMessage("Watch closely", "Replaying the last move that led to this puzzle.");
+      }
+      await presentPuzzle(puzzle, band);
       setMessage("Your move", "Find the first move of the solution line.");
     } finally {
       setBoardLoadingState(false);
@@ -5880,7 +5943,7 @@
     }
   }
   function handleUserMove(orig, dest) {
-    if (!activePuzzle || solvedCurrentPuzzle) {
+    if (!activePuzzle || solvedCurrentPuzzle || isAnimatingSetupMove) {
       return;
     }
     const expected = activePuzzle.solution[solutionIndex];
@@ -5917,11 +5980,15 @@
       return;
     }
     nextButton.disabled = true;
-    presentPuzzle(previous.puzzle, previous.band);
-    setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
+    if (shouldAnimateSetupMove) {
+      setMessage("Watch closely", "Replaying the last move that led to this puzzle.");
+    }
+    presentPuzzle(previous.puzzle, previous.band).then(() => {
+      setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
+    }).catch(handleLoadError);
   });
   hintButton.addEventListener("click", () => {
-    if (!activePuzzle || solvedCurrentPuzzle) {
+    if (!activePuzzle || solvedCurrentPuzzle || isAnimatingSetupMove) {
       return;
     }
     const expected = activePuzzle.solution[solutionIndex];
@@ -5934,13 +6001,43 @@
   });
   flipToggle.addEventListener("change", () => {
     isBoardFlipped = flipToggle.checked;
+    syncFlipAccessibilityState();
     if (!chess) {
       return;
     }
     syncGround();
   });
+  makeLastMoveToggle.addEventListener("change", () => {
+    shouldAnimateSetupMove = makeLastMoveToggle.checked;
+    syncMakeLastMoveAccessibilityState();
+  });
+  settingsButton.addEventListener("click", () => {
+    if (settingsDropdown.classList.contains("hidden")) {
+      openSettingsMenu();
+      return;
+    }
+    closeSettingsMenu();
+  });
   statsButton.addEventListener("click", () => {
     openStatsModal();
+  });
+  document.addEventListener("click", (event) => {
+    if (!settingsButton || !settingsDropdown) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      return;
+    }
+    if (settingsButton.contains(target) || settingsDropdown.contains(target)) {
+      return;
+    }
+    closeSettingsMenu();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeSettingsMenu();
+    }
   });
   statsCloseButton.addEventListener("click", () => {
     closeStatsModal();
@@ -5979,6 +6076,8 @@
   }
   updateHistoryControls();
   updateHintControl();
+  syncFlipAccessibilityState();
+  syncMakeLastMoveAccessibilityState();
   setBoardLoadingState(true, "Preparing board...");
   init();
 })();

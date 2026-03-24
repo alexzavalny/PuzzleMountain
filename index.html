@@ -59,10 +59,29 @@
           <div class="actions">
             <button id="prev-button" class="secondary" type="button" disabled>Prev</button>
             <button id="hint-button" class="secondary" type="button" disabled>Hint</button>
-            <label class="toggle-chip" for="flip-toggle">
-              <input id="flip-toggle" class="toggle-chip-input" type="checkbox">
-              <span class="toggle-chip-label">Flip</span>
-            </label>
+            <div class="settings-menu">
+              <button
+                id="settings-button"
+                class="secondary icon-button"
+                type="button"
+                aria-label="Open settings"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="settings-dropdown"
+              >
+                <span aria-hidden="true">⚙</span>
+              </button>
+              <div id="settings-dropdown" class="settings-dropdown hidden" role="menu" aria-label="Board settings">
+                <label class="settings-option" for="flip-toggle" role="menuitemcheckbox" aria-checked="false">
+                  <input id="flip-toggle" class="toggle-chip-input" type="checkbox">
+                  <span class="toggle-chip-label">Flip</span>
+                </label>
+                <label class="settings-option" for="make-last-move-toggle" role="menuitemcheckbox" aria-checked="false">
+                  <input id="make-last-move-toggle" class="toggle-chip-input" type="checkbox">
+                  <span class="toggle-chip-label">Make last move</span>
+                </label>
+              </div>
+            </div>
             <button id="stats-button" class="secondary" type="button">Stats</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
