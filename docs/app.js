@@ -1231,15 +1231,15 @@
   function wrappingMul(x, y) {
     return x * y & MASK64;
   }
-  function xoroshiro128(state) {
+  function xoroshiro128(state2) {
     return function() {
-      let s0 = BigInt(state & MASK64);
-      let s1 = BigInt(state >> 64n & MASK64);
+      let s0 = BigInt(state2 & MASK64);
+      let s1 = BigInt(state2 >> 64n & MASK64);
       const result = wrappingMul(rotl(wrappingMul(s0, 5n), 7n), 9n);
       s1 ^= s0;
       s0 = (rotl(s0, 24n) ^ s1 ^ s1 << 16n) & MASK64;
       s1 = rotl(s1, 37n);
-      state = s1 << 64n | s0;
+      state2 = s1 << 64n | s0;
       return result;
     };
   }
@@ -1275,7 +1275,7 @@
     lan;
     before;
     after;
-    constructor(chess2, internal) {
+    constructor(chess, internal) {
       const { color, piece, from, to, flags, captured, promotion } = internal;
       const fromAlgebraic = algebraic(from);
       const toAlgebraic = algebraic(to);
@@ -1283,12 +1283,12 @@
       this.piece = piece;
       this.from = fromAlgebraic;
       this.to = toAlgebraic;
-      this.san = chess2["_moveToSan"](internal, chess2["_moves"]({ legal: true }));
+      this.san = chess["_moveToSan"](internal, chess["_moves"]({ legal: true }));
       this.lan = fromAlgebraic + toAlgebraic;
-      this.before = chess2.fen();
-      chess2["_makeMove"](internal);
-      this.after = chess2.fen();
-      chess2["_undoMove"]();
+      this.before = chess.fen();
+      chess["_makeMove"](internal);
+      this.after = chess.fen();
+      chess["_undoMove"]();
       this.flags = "";
       for (const flag in BITS) {
         if (BITS[flag] & flags) {
@@ -3576,12 +3576,12 @@
   var queen = (ctx) => bishop(ctx) || rook(ctx);
   var king = (ctx) => kingDirNonCastling(...ctx.orig.pos, ...ctx.dest.pos) || ctx.orig.pos[1] === ctx.dest.pos[1] && ctx.orig.pos[1] === (ctx.color === "white" ? 0 : 7) && (ctx.orig.pos[0] === 4 && (ctx.dest.pos[0] === 2 && ctx.rookFilesFriendlies.includes(0) || ctx.dest.pos[0] === 6 && ctx.rookFilesFriendlies.includes(7)) || ctx.rookFilesFriendlies.includes(ctx.dest.pos[0]));
   var mobilityByRole = { pawn, knight, bishop, rook, queen, king };
-  function premove(state, key) {
-    const pieces = state.pieces;
+  function premove(state2, key) {
+    const pieces = state2.pieces;
     const piece = pieces.get(key);
-    if (!piece || piece.color === state.turnColor)
+    if (!piece || piece.color === state2.turnColor)
       return [];
-    const color = piece.color, friendlies = new Map([...pieces].filter(([_, p]) => p.color === color)), enemies = new Map([...pieces].filter(([_, p]) => p.color === opposite(color))), orig = { key, pos: key2pos(key) }, mobility = (ctx) => mobilityByRole[piece.role](ctx) && state.premovable.additionalPremoveRequirements(ctx), partialCtx = {
+    const color = piece.color, friendlies = new Map([...pieces].filter(([_, p]) => p.color === color)), enemies = new Map([...pieces].filter(([_, p]) => p.color === opposite(color))), orig = { key, pos: key2pos(key) }, mobility = (ctx) => mobilityByRole[piece.role](ctx) && state2.premovable.additionalPremoveRequirements(ctx), partialCtx = {
       orig,
       role: piece.role,
       allPieces: pieces,
@@ -3589,7 +3589,7 @@
       enemies,
       color,
       rookFilesFriendlies: Array.from(pieces).filter(([k, p]) => k[1] === (color === "white" ? "1" : "8") && p.color === color && p.role === "rook").map(([k]) => key2pos(k)[0]),
-      lastMove: state.lastMove
+      lastMove: state2.lastMove
     };
     return allPosAndKey.filter((dest) => mobility({ ...partialCtx, dest })).map((pk) => pk.key);
   }
@@ -3599,270 +3599,270 @@
     if (f)
       setTimeout(() => f(...args), 1);
   }
-  function toggleOrientation(state) {
-    state.orientation = opposite(state.orientation);
-    state.animation.current = state.draggable.current = state.selected = void 0;
+  function toggleOrientation(state2) {
+    state2.orientation = opposite(state2.orientation);
+    state2.animation.current = state2.draggable.current = state2.selected = void 0;
   }
-  function setPieces(state, pieces) {
+  function setPieces(state2, pieces) {
     for (const [key, piece] of pieces) {
       if (piece)
-        state.pieces.set(key, piece);
+        state2.pieces.set(key, piece);
       else
-        state.pieces.delete(key);
+        state2.pieces.delete(key);
     }
   }
-  function setCheck(state, color) {
-    state.check = void 0;
+  function setCheck(state2, color) {
+    state2.check = void 0;
     if (color === true)
-      color = state.turnColor;
+      color = state2.turnColor;
     if (color)
-      for (const [k, p] of state.pieces) {
+      for (const [k, p] of state2.pieces) {
         if (p.role === "king" && p.color === color) {
-          state.check = k;
+          state2.check = k;
         }
       }
   }
-  function setPremove(state, orig, dest, meta) {
-    unsetPredrop(state);
-    state.premovable.current = [orig, dest];
-    callUserFunction(state.premovable.events.set, orig, dest, meta);
+  function setPremove(state2, orig, dest, meta) {
+    unsetPredrop(state2);
+    state2.premovable.current = [orig, dest];
+    callUserFunction(state2.premovable.events.set, orig, dest, meta);
   }
-  function unsetPremove(state) {
-    if (state.premovable.current) {
-      state.premovable.current = void 0;
-      callUserFunction(state.premovable.events.unset);
+  function unsetPremove(state2) {
+    if (state2.premovable.current) {
+      state2.premovable.current = void 0;
+      callUserFunction(state2.premovable.events.unset);
     }
   }
-  function setPredrop(state, role, key) {
-    unsetPremove(state);
-    state.predroppable.current = { role, key };
-    callUserFunction(state.predroppable.events.set, role, key);
+  function setPredrop(state2, role, key) {
+    unsetPremove(state2);
+    state2.predroppable.current = { role, key };
+    callUserFunction(state2.predroppable.events.set, role, key);
   }
-  function unsetPredrop(state) {
-    const pd = state.predroppable;
+  function unsetPredrop(state2) {
+    const pd = state2.predroppable;
     if (pd.current) {
       pd.current = void 0;
       callUserFunction(pd.events.unset);
     }
   }
-  function tryAutoCastle(state, orig, dest) {
-    if (!state.autoCastle)
+  function tryAutoCastle(state2, orig, dest) {
+    if (!state2.autoCastle)
       return false;
-    const king2 = state.pieces.get(orig);
+    const king2 = state2.pieces.get(orig);
     if (!king2 || king2.role !== "king")
       return false;
     const origPos = key2pos(orig);
     const destPos = key2pos(dest);
     if (origPos[1] !== 0 && origPos[1] !== 7 || origPos[1] !== destPos[1])
       return false;
-    if (origPos[0] === 4 && !state.pieces.has(dest)) {
+    if (origPos[0] === 4 && !state2.pieces.has(dest)) {
       if (destPos[0] === 6)
         dest = pos2keyUnsafe([7, destPos[1]]);
       else if (destPos[0] === 2)
         dest = pos2keyUnsafe([0, destPos[1]]);
     }
-    const rook2 = state.pieces.get(dest);
+    const rook2 = state2.pieces.get(dest);
     if (!rook2 || rook2.color !== king2.color || rook2.role !== "rook")
       return false;
-    state.pieces.delete(orig);
-    state.pieces.delete(dest);
+    state2.pieces.delete(orig);
+    state2.pieces.delete(dest);
     if (origPos[0] < destPos[0]) {
-      state.pieces.set(pos2keyUnsafe([6, destPos[1]]), king2);
-      state.pieces.set(pos2keyUnsafe([5, destPos[1]]), rook2);
+      state2.pieces.set(pos2keyUnsafe([6, destPos[1]]), king2);
+      state2.pieces.set(pos2keyUnsafe([5, destPos[1]]), rook2);
     } else {
-      state.pieces.set(pos2keyUnsafe([2, destPos[1]]), king2);
-      state.pieces.set(pos2keyUnsafe([3, destPos[1]]), rook2);
+      state2.pieces.set(pos2keyUnsafe([2, destPos[1]]), king2);
+      state2.pieces.set(pos2keyUnsafe([3, destPos[1]]), rook2);
     }
     return true;
   }
-  function baseMove(state, orig, dest) {
-    const origPiece = state.pieces.get(orig), destPiece = state.pieces.get(dest);
+  function baseMove(state2, orig, dest) {
+    const origPiece = state2.pieces.get(orig), destPiece = state2.pieces.get(dest);
     if (orig === dest || !origPiece)
       return false;
     const captured = destPiece && destPiece.color !== origPiece.color ? destPiece : void 0;
-    if (dest === state.selected)
-      unselect(state);
-    callUserFunction(state.events.move, orig, dest, captured);
-    if (!tryAutoCastle(state, orig, dest)) {
-      state.pieces.set(dest, origPiece);
-      state.pieces.delete(orig);
+    if (dest === state2.selected)
+      unselect(state2);
+    callUserFunction(state2.events.move, orig, dest, captured);
+    if (!tryAutoCastle(state2, orig, dest)) {
+      state2.pieces.set(dest, origPiece);
+      state2.pieces.delete(orig);
     }
-    state.lastMove = [orig, dest];
-    state.check = void 0;
-    callUserFunction(state.events.change);
+    state2.lastMove = [orig, dest];
+    state2.check = void 0;
+    callUserFunction(state2.events.change);
     return captured || true;
   }
-  function baseNewPiece(state, piece, key, force) {
-    if (state.pieces.has(key)) {
+  function baseNewPiece(state2, piece, key, force) {
+    if (state2.pieces.has(key)) {
       if (force)
-        state.pieces.delete(key);
+        state2.pieces.delete(key);
       else
         return false;
     }
-    callUserFunction(state.events.dropNewPiece, piece, key);
-    state.pieces.set(key, piece);
-    state.lastMove = [key];
-    state.check = void 0;
-    callUserFunction(state.events.change);
-    state.movable.dests = void 0;
-    state.turnColor = opposite(state.turnColor);
+    callUserFunction(state2.events.dropNewPiece, piece, key);
+    state2.pieces.set(key, piece);
+    state2.lastMove = [key];
+    state2.check = void 0;
+    callUserFunction(state2.events.change);
+    state2.movable.dests = void 0;
+    state2.turnColor = opposite(state2.turnColor);
     return true;
   }
-  function baseUserMove(state, orig, dest) {
-    const result = baseMove(state, orig, dest);
+  function baseUserMove(state2, orig, dest) {
+    const result = baseMove(state2, orig, dest);
     if (result) {
-      state.movable.dests = void 0;
-      state.turnColor = opposite(state.turnColor);
-      state.animation.current = void 0;
+      state2.movable.dests = void 0;
+      state2.turnColor = opposite(state2.turnColor);
+      state2.animation.current = void 0;
     }
     return result;
   }
-  function userMove(state, orig, dest) {
-    if (canMove(state, orig, dest)) {
-      const result = baseUserMove(state, orig, dest);
+  function userMove(state2, orig, dest) {
+    if (canMove(state2, orig, dest)) {
+      const result = baseUserMove(state2, orig, dest);
       if (result) {
-        const holdTime = state.hold.stop();
-        unselect(state);
-        const metadata2 = {
+        const holdTime = state2.hold.stop();
+        unselect(state2);
+        const metadata = {
           premove: false,
-          ctrlKey: state.stats.ctrlKey,
+          ctrlKey: state2.stats.ctrlKey,
           holdTime
         };
         if (result !== true)
-          metadata2.captured = result;
-        callUserFunction(state.movable.events.after, orig, dest, metadata2);
+          metadata.captured = result;
+        callUserFunction(state2.movable.events.after, orig, dest, metadata);
         return true;
       }
-    } else if (canPremove(state, orig, dest)) {
-      setPremove(state, orig, dest, {
-        ctrlKey: state.stats.ctrlKey
+    } else if (canPremove(state2, orig, dest)) {
+      setPremove(state2, orig, dest, {
+        ctrlKey: state2.stats.ctrlKey
       });
-      unselect(state);
+      unselect(state2);
       return true;
     }
-    unselect(state);
+    unselect(state2);
     return false;
   }
-  function dropNewPiece(state, orig, dest, force) {
-    const piece = state.pieces.get(orig);
-    if (piece && (canDrop(state, orig, dest) || force)) {
-      state.pieces.delete(orig);
-      baseNewPiece(state, piece, dest, force);
-      callUserFunction(state.movable.events.afterNewPiece, piece.role, dest, {
+  function dropNewPiece(state2, orig, dest, force) {
+    const piece = state2.pieces.get(orig);
+    if (piece && (canDrop(state2, orig, dest) || force)) {
+      state2.pieces.delete(orig);
+      baseNewPiece(state2, piece, dest, force);
+      callUserFunction(state2.movable.events.afterNewPiece, piece.role, dest, {
         premove: false,
         predrop: false
       });
-    } else if (piece && canPredrop(state, orig, dest)) {
-      setPredrop(state, piece.role, dest);
+    } else if (piece && canPredrop(state2, orig, dest)) {
+      setPredrop(state2, piece.role, dest);
     } else {
-      unsetPremove(state);
-      unsetPredrop(state);
+      unsetPremove(state2);
+      unsetPredrop(state2);
     }
-    state.pieces.delete(orig);
-    unselect(state);
+    state2.pieces.delete(orig);
+    unselect(state2);
   }
-  function selectSquare(state, key, force) {
-    callUserFunction(state.events.select, key);
-    if (state.selected) {
-      if (state.selected === key && !state.draggable.enabled) {
-        unselect(state);
-        state.hold.cancel();
+  function selectSquare(state2, key, force) {
+    callUserFunction(state2.events.select, key);
+    if (state2.selected) {
+      if (state2.selected === key && !state2.draggable.enabled) {
+        unselect(state2);
+        state2.hold.cancel();
         return;
-      } else if ((state.selectable.enabled || force) && state.selected !== key) {
-        if (userMove(state, state.selected, key)) {
-          state.stats.dragged = false;
+      } else if ((state2.selectable.enabled || force) && state2.selected !== key) {
+        if (userMove(state2, state2.selected, key)) {
+          state2.stats.dragged = false;
           return;
         }
       }
     }
-    if ((state.selectable.enabled || state.draggable.enabled) && (isMovable(state, key) || isPremovable(state, key))) {
-      setSelected(state, key);
-      state.hold.start();
+    if ((state2.selectable.enabled || state2.draggable.enabled) && (isMovable(state2, key) || isPremovable(state2, key))) {
+      setSelected(state2, key);
+      state2.hold.start();
     }
   }
-  function setSelected(state, key) {
-    state.selected = key;
-    if (!isPremovable(state, key))
-      state.premovable.dests = void 0;
-    else if (!state.premovable.customDests)
-      state.premovable.dests = premove(state, key);
+  function setSelected(state2, key) {
+    state2.selected = key;
+    if (!isPremovable(state2, key))
+      state2.premovable.dests = void 0;
+    else if (!state2.premovable.customDests)
+      state2.premovable.dests = premove(state2, key);
   }
-  function unselect(state) {
-    state.selected = void 0;
-    state.premovable.dests = void 0;
-    state.hold.cancel();
+  function unselect(state2) {
+    state2.selected = void 0;
+    state2.premovable.dests = void 0;
+    state2.hold.cancel();
   }
-  function isMovable(state, orig) {
-    const piece = state.pieces.get(orig);
-    return !!piece && (state.movable.color === "both" || state.movable.color === piece.color && state.turnColor === piece.color);
+  function isMovable(state2, orig) {
+    const piece = state2.pieces.get(orig);
+    return !!piece && (state2.movable.color === "both" || state2.movable.color === piece.color && state2.turnColor === piece.color);
   }
-  var canMove = (state, orig, dest) => orig !== dest && isMovable(state, orig) && (state.movable.free || !!state.movable.dests?.get(orig)?.includes(dest));
-  function canDrop(state, orig, dest) {
-    const piece = state.pieces.get(orig);
-    return !!piece && (orig === dest || !state.pieces.has(dest)) && (state.movable.color === "both" || state.movable.color === piece.color && state.turnColor === piece.color);
+  var canMove = (state2, orig, dest) => orig !== dest && isMovable(state2, orig) && (state2.movable.free || !!state2.movable.dests?.get(orig)?.includes(dest));
+  function canDrop(state2, orig, dest) {
+    const piece = state2.pieces.get(orig);
+    return !!piece && (orig === dest || !state2.pieces.has(dest)) && (state2.movable.color === "both" || state2.movable.color === piece.color && state2.turnColor === piece.color);
   }
-  function isPremovable(state, orig) {
-    const piece = state.pieces.get(orig);
-    return !!piece && state.premovable.enabled && state.movable.color === piece.color && state.turnColor !== piece.color;
+  function isPremovable(state2, orig) {
+    const piece = state2.pieces.get(orig);
+    return !!piece && state2.premovable.enabled && state2.movable.color === piece.color && state2.turnColor !== piece.color;
   }
-  var canPremove = (state, orig, dest) => orig !== dest && isPremovable(state, orig) && (state.premovable.customDests?.get(orig) ?? premove(state, orig)).includes(dest);
-  function canPredrop(state, orig, dest) {
-    const piece = state.pieces.get(orig);
-    const destPiece = state.pieces.get(dest);
-    return !!piece && (!destPiece || destPiece.color !== state.movable.color) && state.predroppable.enabled && (piece.role !== "pawn" || dest[1] !== "1" && dest[1] !== "8") && state.movable.color === piece.color && state.turnColor !== piece.color;
+  var canPremove = (state2, orig, dest) => orig !== dest && isPremovable(state2, orig) && (state2.premovable.customDests?.get(orig) ?? premove(state2, orig)).includes(dest);
+  function canPredrop(state2, orig, dest) {
+    const piece = state2.pieces.get(orig);
+    const destPiece = state2.pieces.get(dest);
+    return !!piece && (!destPiece || destPiece.color !== state2.movable.color) && state2.predroppable.enabled && (piece.role !== "pawn" || dest[1] !== "1" && dest[1] !== "8") && state2.movable.color === piece.color && state2.turnColor !== piece.color;
   }
-  function isDraggable(state, orig) {
-    const piece = state.pieces.get(orig);
-    return !!piece && state.draggable.enabled && (state.movable.color === "both" || state.movable.color === piece.color && (state.turnColor === piece.color || state.premovable.enabled));
+  function isDraggable(state2, orig) {
+    const piece = state2.pieces.get(orig);
+    return !!piece && state2.draggable.enabled && (state2.movable.color === "both" || state2.movable.color === piece.color && (state2.turnColor === piece.color || state2.premovable.enabled));
   }
-  function playPremove(state) {
-    const move3 = state.premovable.current;
+  function playPremove(state2) {
+    const move3 = state2.premovable.current;
     if (!move3)
       return false;
     const orig = move3[0], dest = move3[1];
     let success = false;
-    if (canMove(state, orig, dest)) {
-      const result = baseUserMove(state, orig, dest);
+    if (canMove(state2, orig, dest)) {
+      const result = baseUserMove(state2, orig, dest);
       if (result) {
-        const metadata2 = { premove: true };
+        const metadata = { premove: true };
         if (result !== true)
-          metadata2.captured = result;
-        callUserFunction(state.movable.events.after, orig, dest, metadata2);
+          metadata.captured = result;
+        callUserFunction(state2.movable.events.after, orig, dest, metadata);
         success = true;
       }
     }
-    unsetPremove(state);
+    unsetPremove(state2);
     return success;
   }
-  function playPredrop(state, validate) {
-    const drop2 = state.predroppable.current;
+  function playPredrop(state2, validate) {
+    const drop2 = state2.predroppable.current;
     let success = false;
     if (!drop2)
       return false;
     if (validate(drop2)) {
       const piece = {
         role: drop2.role,
-        color: state.movable.color
+        color: state2.movable.color
       };
-      if (baseNewPiece(state, piece, drop2.key)) {
-        callUserFunction(state.movable.events.afterNewPiece, drop2.role, drop2.key, {
+      if (baseNewPiece(state2, piece, drop2.key)) {
+        callUserFunction(state2.movable.events.afterNewPiece, drop2.role, drop2.key, {
           premove: false,
           predrop: true
         });
         success = true;
       }
     }
-    unsetPredrop(state);
+    unsetPredrop(state2);
     return success;
   }
-  function cancelMove(state) {
-    unsetPremove(state);
-    unsetPredrop(state);
-    unselect(state);
+  function cancelMove(state2) {
+    unsetPremove(state2);
+    unsetPredrop(state2);
+    unselect(state2);
   }
-  function stop(state) {
-    state.movable.color = state.movable.dests = state.animation.current = void 0;
-    cancelMove(state);
+  function stop(state2) {
+    state2.movable.color = state2.movable.dests = state2.animation.current = void 0;
+    cancelMove(state2);
   }
   function getKeyAtDomPos(pos, asWhite, bounds) {
     let file2 = Math.floor(8 * (pos[0] - bounds.left) / bounds.width);
@@ -3959,37 +3959,37 @@
   }
 
   // node_modules/@lichess-org/chessground/dist/config.js
-  function applyAnimation(state, config) {
+  function applyAnimation(state2, config) {
     if (config.animation) {
-      deepMerge(state.animation, config.animation);
-      if ((state.animation.duration || 0) < 70)
-        state.animation.enabled = false;
+      deepMerge(state2.animation, config.animation);
+      if ((state2.animation.duration || 0) < 70)
+        state2.animation.enabled = false;
     }
   }
-  function configure(state, config) {
+  function configure(state2, config) {
     if (config.movable?.dests)
-      state.movable.dests = void 0;
+      state2.movable.dests = void 0;
     if (config.drawable?.autoShapes)
-      state.drawable.autoShapes = [];
-    deepMerge(state, config);
+      state2.drawable.autoShapes = [];
+    deepMerge(state2, config);
     if (config.fen) {
-      state.pieces = read(config.fen);
-      state.drawable.shapes = config.drawable?.shapes || [];
+      state2.pieces = read(config.fen);
+      state2.drawable.shapes = config.drawable?.shapes || [];
     }
     if ("check" in config)
-      setCheck(state, config.check || false);
+      setCheck(state2, config.check || false);
     if ("lastMove" in config && !config.lastMove)
-      state.lastMove = void 0;
+      state2.lastMove = void 0;
     else if (config.lastMove)
-      state.lastMove = config.lastMove;
-    if (state.selected)
-      setSelected(state, state.selected);
-    applyAnimation(state, config);
-    if (!state.movable.rookCastle && state.movable.dests) {
-      const rank2 = state.movable.color === "white" ? "1" : "8", kingStartPos = "e" + rank2, dests = state.movable.dests.get(kingStartPos), king2 = state.pieces.get(kingStartPos);
+      state2.lastMove = config.lastMove;
+    if (state2.selected)
+      setSelected(state2, state2.selected);
+    applyAnimation(state2, config);
+    if (!state2.movable.rookCastle && state2.movable.dests) {
+      const rank2 = state2.movable.color === "white" ? "1" : "8", kingStartPos = "e" + rank2, dests = state2.movable.dests.get(kingStartPos), king2 = state2.pieces.get(kingStartPos);
       if (!dests || !king2 || king2.role !== "king")
         return;
-      state.movable.dests.set(kingStartPos, dests.filter((d) => !(d === "a" + rank2 && dests.includes("c" + rank2)) && !(d === "h" + rank2 && dests.includes("g" + rank2))));
+      state2.movable.dests.set(kingStartPos, dests.filter((d) => !(d === "a" + rank2 && dests.includes("c" + rank2)) && !(d === "h" + rank2 && dests.includes("g" + rank2))));
     }
   }
   function deepMerge(base, extend) {
@@ -4010,10 +4010,10 @@
   }
 
   // node_modules/@lichess-org/chessground/dist/anim.js
-  var anim = (mutation, state) => state.animation.enabled ? animate(mutation, state) : render(mutation, state);
-  function render(mutation, state) {
-    const result = mutation(state);
-    state.dom.redraw();
+  var anim = (mutation, state2) => state2.animation.enabled ? animate(mutation, state2) : render(mutation, state2);
+  function render(mutation, state2) {
+    const result = mutation(state2);
+    state2.dom.redraw();
     return result;
   }
   var makePiece = (key, piece) => ({
@@ -4059,42 +4059,42 @@
       fadings
     };
   }
-  function step(state, now) {
-    const cur = state.animation.current;
+  function step(state2, now) {
+    const cur = state2.animation.current;
     if (cur === void 0) {
-      if (!state.dom.destroyed)
-        state.dom.redrawNow();
+      if (!state2.dom.destroyed)
+        state2.dom.redrawNow();
       return;
     }
     const rest = 1 - (now - cur.start) * cur.frequency;
     if (rest <= 0) {
-      state.animation.current = void 0;
-      state.dom.redrawNow();
+      state2.animation.current = void 0;
+      state2.dom.redrawNow();
     } else {
       const ease = easing(rest);
       for (const cfg of cur.plan.anims.values()) {
         cfg[2] = cfg[0] * ease;
         cfg[3] = cfg[1] * ease;
       }
-      state.dom.redrawNow(true);
-      requestAnimationFrame((now2 = performance.now()) => step(state, now2));
+      state2.dom.redrawNow(true);
+      requestAnimationFrame((now2 = performance.now()) => step(state2, now2));
     }
   }
-  function animate(mutation, state) {
-    const prevPieces = new Map(state.pieces);
-    const result = mutation(state);
-    const plan = computePlan(prevPieces, state);
+  function animate(mutation, state2) {
+    const prevPieces = new Map(state2.pieces);
+    const result = mutation(state2);
+    const plan = computePlan(prevPieces, state2);
     if (plan.anims.size || plan.fadings.size) {
-      const alreadyRunning = state.animation.current && state.animation.current.start;
-      state.animation.current = {
+      const alreadyRunning = state2.animation.current && state2.animation.current.start;
+      state2.animation.current = {
         start: performance.now(),
-        frequency: 1 / state.animation.duration,
+        frequency: 1 / state2.animation.duration,
         plan
       };
       if (!alreadyRunning)
-        step(state, performance.now());
+        step(state2, performance.now());
     } else {
-      state.dom.redraw();
+      state2.dom.redraw();
     }
     return result;
   }
@@ -4102,64 +4102,64 @@
 
   // node_modules/@lichess-org/chessground/dist/draw.js
   var brushes = ["green", "red", "blue", "yellow"];
-  function start(state, e) {
+  function start(state2, e) {
     if (e.touches && e.touches.length > 1)
       return;
     e.stopPropagation();
     e.preventDefault();
-    e.ctrlKey ? unselect(state) : cancelMove(state);
-    const pos = eventPosition(e), orig = getKeyAtDomPos(pos, whitePov(state), state.dom.bounds());
+    e.ctrlKey ? unselect(state2) : cancelMove(state2);
+    const pos = eventPosition(e), orig = getKeyAtDomPos(pos, whitePov(state2), state2.dom.bounds());
     if (!orig)
       return;
-    state.drawable.current = {
+    state2.drawable.current = {
       orig,
       pos,
       brush: eventBrush(e),
-      snapToValidMove: state.drawable.defaultSnapToValidMove
+      snapToValidMove: state2.drawable.defaultSnapToValidMove
     };
-    processDraw(state);
+    processDraw(state2);
   }
-  function processDraw(state) {
+  function processDraw(state2) {
     requestAnimationFrame(() => {
-      const cur = state.drawable.current;
+      const cur = state2.drawable.current;
       if (cur) {
-        const keyAtDomPos = getKeyAtDomPos(cur.pos, whitePov(state), state.dom.bounds());
+        const keyAtDomPos = getKeyAtDomPos(cur.pos, whitePov(state2), state2.dom.bounds());
         if (!keyAtDomPos) {
           cur.snapToValidMove = false;
         }
-        const mouseSq = cur.snapToValidMove ? getSnappedKeyAtDomPos(cur.orig, cur.pos, whitePov(state), state.dom.bounds()) : keyAtDomPos;
+        const mouseSq = cur.snapToValidMove ? getSnappedKeyAtDomPos(cur.orig, cur.pos, whitePov(state2), state2.dom.bounds()) : keyAtDomPos;
         if (mouseSq !== cur.mouseSq) {
           cur.mouseSq = mouseSq;
           cur.dest = mouseSq !== cur.orig ? mouseSq : void 0;
-          state.dom.redrawNow();
+          state2.dom.redrawNow();
         }
-        processDraw(state);
+        processDraw(state2);
       }
     });
   }
-  function move(state, e) {
-    if (state.drawable.current)
-      state.drawable.current.pos = eventPosition(e);
+  function move(state2, e) {
+    if (state2.drawable.current)
+      state2.drawable.current.pos = eventPosition(e);
   }
-  function end(state) {
-    const cur = state.drawable.current;
+  function end(state2) {
+    const cur = state2.drawable.current;
     if (cur) {
       if (cur.mouseSq)
-        addShape(state.drawable, cur);
-      cancel(state);
+        addShape(state2.drawable, cur);
+      cancel(state2);
     }
   }
-  function cancel(state) {
-    if (state.drawable.current) {
-      state.drawable.current = void 0;
-      state.dom.redraw();
+  function cancel(state2) {
+    if (state2.drawable.current) {
+      state2.drawable.current = void 0;
+      state2.dom.redraw();
     }
   }
-  function clear(state) {
-    if (state.drawable.shapes.length) {
-      state.drawable.shapes = [];
-      state.dom.redraw();
-      onChange(state.drawable);
+  function clear(state2) {
+    if (state2.drawable.shapes.length) {
+      state2.drawable.shapes = [];
+      state2.dom.redraw();
+      onChange(state2.drawable);
     }
   }
   var sameEndpoints = (s1, s2) => s1.orig === s2.orig && s1.dest === s2.dest;
@@ -4209,7 +4209,7 @@
     const hadPredrop = !!s.predroppable.current;
     s.stats.ctrlKey = e.ctrlKey;
     if (s.selected && canMove(s, s.selected, orig)) {
-      anim((state) => selectSquare(state, orig), s);
+      anim((state2) => selectSquare(state2, orig), s);
     } else {
       selectSquare(s, orig);
     }
@@ -4402,111 +4402,111 @@
   }
 
   // node_modules/@lichess-org/chessground/dist/explosion.js
-  function explosion(state, keys) {
-    state.exploding = { stage: 1, keys };
-    state.dom.redraw();
+  function explosion(state2, keys) {
+    state2.exploding = { stage: 1, keys };
+    state2.dom.redraw();
     setTimeout(() => {
-      setStage(state, 2);
-      setTimeout(() => setStage(state, void 0), 120);
+      setStage(state2, 2);
+      setTimeout(() => setStage(state2, void 0), 120);
     }, 120);
   }
-  function setStage(state, stage) {
-    if (state.exploding) {
+  function setStage(state2, stage) {
+    if (state2.exploding) {
       if (stage)
-        state.exploding.stage = stage;
+        state2.exploding.stage = stage;
       else
-        state.exploding = void 0;
-      state.dom.redraw();
+        state2.exploding = void 0;
+      state2.dom.redraw();
     }
   }
 
   // node_modules/@lichess-org/chessground/dist/api.js
-  function start3(state, redrawAll) {
+  function start3(state2, redrawAll) {
     function toggleOrientation2() {
-      toggleOrientation(state);
+      toggleOrientation(state2);
       redrawAll();
     }
     return {
       set(config) {
-        if (config.orientation && config.orientation !== state.orientation)
+        if (config.orientation && config.orientation !== state2.orientation)
           toggleOrientation2();
-        applyAnimation(state, config);
-        (config.fen ? anim : render)((state2) => configure(state2, config), state);
+        applyAnimation(state2, config);
+        (config.fen ? anim : render)((state3) => configure(state3, config), state2);
       },
-      state,
-      getFen: () => write(state.pieces),
+      state: state2,
+      getFen: () => write(state2.pieces),
       toggleOrientation: toggleOrientation2,
       setPieces(pieces) {
-        anim((state2) => setPieces(state2, pieces), state);
+        anim((state3) => setPieces(state3, pieces), state2);
       },
       selectSquare(key, force) {
         if (key)
-          anim((state2) => selectSquare(state2, key, force), state);
-        else if (state.selected) {
-          unselect(state);
-          state.dom.redraw();
+          anim((state3) => selectSquare(state3, key, force), state2);
+        else if (state2.selected) {
+          unselect(state2);
+          state2.dom.redraw();
         }
       },
       move(orig, dest) {
-        anim((state2) => baseMove(state2, orig, dest), state);
+        anim((state3) => baseMove(state3, orig, dest), state2);
       },
       newPiece(piece, key) {
-        anim((state2) => baseNewPiece(state2, piece, key), state);
+        anim((state3) => baseNewPiece(state3, piece, key), state2);
       },
       playPremove() {
-        if (state.premovable.current) {
-          if (anim(playPremove, state))
+        if (state2.premovable.current) {
+          if (anim(playPremove, state2))
             return true;
-          state.dom.redraw();
+          state2.dom.redraw();
         }
         return false;
       },
       playPredrop(validate) {
-        if (state.predroppable.current) {
-          const result = playPredrop(state, validate);
-          state.dom.redraw();
+        if (state2.predroppable.current) {
+          const result = playPredrop(state2, validate);
+          state2.dom.redraw();
           return result;
         }
         return false;
       },
       cancelPremove() {
-        render(unsetPremove, state);
+        render(unsetPremove, state2);
       },
       cancelPredrop() {
-        render(unsetPredrop, state);
+        render(unsetPredrop, state2);
       },
       cancelMove() {
-        render((state2) => {
-          cancelMove(state2);
-          cancel2(state2);
-        }, state);
+        render((state3) => {
+          cancelMove(state3);
+          cancel2(state3);
+        }, state2);
       },
       stop() {
-        render((state2) => {
-          stop(state2);
-          cancel2(state2);
-        }, state);
+        render((state3) => {
+          stop(state3);
+          cancel2(state3);
+        }, state2);
       },
       explode(keys) {
-        explosion(state, keys);
+        explosion(state2, keys);
       },
       setAutoShapes(shapes) {
-        render((state2) => state2.drawable.autoShapes = shapes, state);
+        render((state3) => state3.drawable.autoShapes = shapes, state2);
       },
       setShapes(shapes) {
-        render((state2) => state2.drawable.shapes = shapes.slice(), state);
+        render((state3) => state3.drawable.shapes = shapes.slice(), state2);
       },
       getKeyAtDomPos(pos) {
-        return getKeyAtDomPos(pos, whitePov(state), state.dom.bounds());
+        return getKeyAtDomPos(pos, whitePov(state2), state2.dom.bounds());
       },
       redrawAll,
       dragNewPiece(piece, event, force) {
-        dragNewPiece(state, piece, event, force);
+        dragNewPiece(state2, piece, event, force);
       },
       destroy() {
-        stop(state);
-        state.dom.unbind && state.dom.unbind();
-        state.dom.destroyed = true;
+        stop(state2);
+        state2.dom.unbind && state2.dom.unbind();
+        state2.dom.destroyed = true;
       }
     };
   }
@@ -4616,12 +4616,12 @@
     defs.appendChild(filter);
     return defs;
   }
-  function renderSvg(state, els) {
-    const d = state.drawable, curD = d.current, cur = curD && curD.mouseSq ? curD : void 0, dests = /* @__PURE__ */ new Map(), bounds = state.dom.bounds(), nonPieceAutoShapes = d.autoShapes.filter((autoShape) => !autoShape.piece);
+  function renderSvg(state2, els) {
+    const d = state2.drawable, curD = d.current, cur = curD && curD.mouseSq ? curD : void 0, dests = /* @__PURE__ */ new Map(), bounds = state2.dom.bounds(), nonPieceAutoShapes = d.autoShapes.filter((autoShape) => !autoShape.piece);
     for (const s of d.shapes.concat(nonPieceAutoShapes).concat(cur ? [cur] : [])) {
       if (!s.dest)
         continue;
-      const sources = dests.get(s.dest) ?? /* @__PURE__ */ new Set(), from = pos2user(orient(key2pos(s.orig), state.orientation), bounds), to = pos2user(orient(key2pos(s.dest), state.orientation), bounds);
+      const sources = dests.get(s.dest) ?? /* @__PURE__ */ new Set(), from = pos2user(orient(key2pos(s.orig), state2.orientation), bounds), to = pos2user(orient(key2pos(s.dest), state2.orientation), bounds);
       sources.add(angleToSlot(moveAngle(from, to)));
       dests.set(s.dest, sources);
     }
@@ -4644,11 +4644,11 @@
         pendingErase: false
       });
     const fullHash = shapes.map((sc) => sc.hash).join(";");
-    if (fullHash === state.drawable.prevSvgHash)
+    if (fullHash === state2.drawable.prevSvgHash)
       return;
-    state.drawable.prevSvgHash = fullHash;
+    state2.drawable.prevSvgHash = fullHash;
     syncDefs(d, shapes, els);
-    syncShapes(shapes, els, (s) => renderShape(state, s, d.brushes, dests, bounds));
+    syncShapes(shapes, els, (s) => renderShape(state2, s, d.brushes, dests, bounds));
   }
   function syncDefs(d, shapes, els) {
     for (const shapesEl of [els.shapes, els.shapesBelow]) {
@@ -4735,8 +4735,8 @@
     }
     return h.toString();
   }
-  function renderShape(state, { shape, current, pendingErase, hash: hash2 }, brushes2, dests, bounds) {
-    const from = pos2user(orient(key2pos(shape.orig), state.orientation), bounds), to = shape.dest ? pos2user(orient(key2pos(shape.dest), state.orientation), bounds) : from, brush = shape.brush && makeCustomBrush(brushes2[shape.brush], shape.modifiers), slots = dests.get(shape.dest), svgs = [];
+  function renderShape(state2, { shape, current, pendingErase, hash: hash2 }, brushes2, dests, bounds) {
+    const from = pos2user(orient(key2pos(shape.orig), state2.orientation), bounds), to = shape.dest ? pos2user(orient(key2pos(shape.dest), state2.orientation), bounds) : from, brush = shape.brush && makeCustomBrush(brushes2[shape.brush], shape.modifiers), slots = dests.get(shape.dest), svgs = [];
     if (brush) {
       const el = setAttributes(createElement("g"), { cgHash: hash2 });
       svgs.push({ el });
@@ -5274,8 +5274,8 @@
   }
 
   // node_modules/@lichess-org/chessground/dist/autoPieces.js
-  function render3(state, autoPieceEl) {
-    const autoPieces = state.drawable.autoShapes.filter((autoShape) => autoShape.piece);
+  function render3(state2, autoPieceEl) {
+    const autoPieces = state2.drawable.autoShapes.filter((autoShape) => autoShape.piece);
     const autoPieceShapes = autoPieces.map((s) => {
       return {
         shape: s,
@@ -5284,17 +5284,17 @@
         pendingErase: false
       };
     });
-    syncShapes2(autoPieceShapes, autoPieceEl, (shape) => renderShape2(state, shape, state.dom.bounds()));
+    syncShapes2(autoPieceShapes, autoPieceEl, (shape) => renderShape2(state2, shape, state2.dom.bounds()));
   }
-  function renderResized2(state) {
-    const asWhite = whitePov(state), posToTranslate2 = posToTranslate(state.dom.bounds());
-    let el = state.dom.elements.autoPieces?.firstChild;
+  function renderResized2(state2) {
+    const asWhite = whitePov(state2), posToTranslate2 = posToTranslate(state2.dom.bounds());
+    let el = state2.dom.elements.autoPieces?.firstChild;
     while (el) {
       translateAndScale(el, posToTranslate2(key2pos(el.cgKey), asWhite), el.cgScale);
       el = el.nextSibling;
     }
   }
-  function renderShape2(state, { shape, hash: hash2 }, bounds) {
+  function renderShape2(state2, { shape, hash: hash2 }, bounds) {
     const orig = shape.orig;
     const role = shape.piece?.role;
     const color = shape.piece?.color;
@@ -5303,7 +5303,7 @@
     pieceEl.setAttribute("cgHash", hash2);
     pieceEl.cgKey = orig;
     pieceEl.cgScale = scale;
-    translateAndScale(pieceEl, posToTranslate(bounds)(key2pos(orig), whitePov(state)), scale);
+    translateAndScale(pieceEl, posToTranslate(bounds)(key2pos(orig), whitePov(state2)), scale);
     return pieceEl;
   }
   var hash = (autoPiece) => [autoPiece.orig, autoPiece.piece?.role, autoPiece.piece?.color, autoPiece.piece?.scale].join(",");
@@ -5314,34 +5314,34 @@
     configure(maybeState, config || {});
     function redrawAll() {
       const prevUnbind = "dom" in maybeState ? maybeState.dom.unbind : void 0;
-      const elements = renderWrap(element, maybeState), bounds = memo(() => elements.board.getBoundingClientRect()), redrawNow = (skipSvg) => {
-        render2(state);
-        if (elements.autoPieces)
-          render3(state, elements.autoPieces);
-        if (!skipSvg && elements.shapes)
-          renderSvg(state, elements);
+      const elements2 = renderWrap(element, maybeState), bounds = memo(() => elements2.board.getBoundingClientRect()), redrawNow = (skipSvg) => {
+        render2(state2);
+        if (elements2.autoPieces)
+          render3(state2, elements2.autoPieces);
+        if (!skipSvg && elements2.shapes)
+          renderSvg(state2, elements2);
       }, onResize = () => {
-        updateBounds(state);
-        renderResized(state);
-        if (elements.autoPieces)
-          renderResized2(state);
+        updateBounds(state2);
+        renderResized(state2);
+        if (elements2.autoPieces)
+          renderResized2(state2);
       };
-      const state = maybeState;
-      state.dom = {
-        elements,
+      const state2 = maybeState;
+      state2.dom = {
+        elements: elements2,
         bounds,
         redraw: debounceRedraw(redrawNow),
         redrawNow,
         unbind: prevUnbind
       };
-      state.drawable.prevSvgHash = "";
-      updateBounds(state);
+      state2.drawable.prevSvgHash = "";
+      updateBounds(state2);
       redrawNow(false);
-      bindBoard(state, onResize);
+      bindBoard(state2, onResize);
       if (!prevUnbind)
-        state.dom.unbind = bindDocument(state, onResize);
-      state.events.insert && state.events.insert(elements);
-      return state;
+        state2.dom.unbind = bindDocument(state2, onResize);
+      state2.events.insert && state2.events.insert(elements2);
+      return state2;
     }
     return start3(redrawAll(), redrawAll);
   }
@@ -5358,147 +5358,246 @@
     };
   }
 
-  // public/app.js
-  var boardElement = document.getElementById("board");
-  var boardLoader = document.getElementById("board-loader");
-  var boardLoaderLabel = document.getElementById("board-loader-label");
-  var boardCaption = document.getElementById("board-caption");
-  var prevButton = document.getElementById("prev-button");
-  var hintButton = document.getElementById("hint-button");
-  var settingsButton = document.getElementById("settings-button");
-  var settingsDropdown = document.getElementById("settings-dropdown");
-  var flipToggle = document.getElementById("flip-toggle");
-  var soundToggle = document.getElementById("sound-toggle");
-  var maxLevelInput = document.getElementById("max-level-input");
-  var makeLastMoveToggle = document.getElementById("make-last-move-toggle");
-  var statsButton = document.getElementById("stats-button");
-  var soundDebugButton = document.getElementById("sound-debug-button");
-  var nextButton = document.getElementById("next-button");
-  var lichessLink = document.getElementById("lichess-link");
-  var rangeMinNode = document.getElementById("range-min");
-  var rangeMaxNode = document.getElementById("range-max");
-  var levelValueNode = document.getElementById("level-value");
-  var levelForm = document.getElementById("level-form");
-  var levelInput = document.getElementById("level-input");
-  var puzzleRatingNode = document.getElementById("puzzle-rating");
-  var messageTitleNode = document.getElementById("message-title");
-  var messageBodyNode = document.getElementById("message-body");
-  var statsModal = document.getElementById("stats-modal");
-  var statsCloseButton = document.getElementById("stats-close-button");
-  var soundDebugModal = document.getElementById("sound-debug-modal");
-  var soundDebugCloseButton = document.getElementById("sound-debug-close-button");
-  var soundDebugList = document.getElementById("sound-debug-list");
-  var strongThemesNode = document.getElementById("strong-themes");
-  var weakThemesNode = document.getElementById("weak-themes");
-  var BASE_URL = new URL(".", window.location.href);
+  // src/asset-url.mjs
+  function defaultBaseUrl() {
+    if (typeof window !== "undefined" && window.location) {
+      return new URL(".", window.location.href);
+    }
+    return new URL("http://localhost/");
+  }
+  function assetUrl(relativePath, baseUrl = defaultBaseUrl()) {
+    return new URL(relativePath, baseUrl).toString();
+  }
+
+  // src/constants.mjs
   var THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
   var MAX_LEVEL_STORAGE_KEY = "puzzlemountain.maxLevel.v1";
   var SOUND_ENABLED_STORAGE_KEY = "puzzlemountain.soundEnabled.v1";
   var SOLVED_MESSAGE_DELAY_MS = 1400;
   var SETUP_MOVE_REPLAY_DELAY_MS = 450;
   var ABSOLUTE_MAX_LEVEL = 66;
+  var SOUND_VOLUME = 0.5;
   var SOUND_ASSETS = Object.freeze({
-    move: "audio/move.ogg",
-    capture: "audio/capture.ogg"
+    move: "audio/move-self.mp3",
+    capture: "audio/capture.mp3"
   });
-  var metadata = null;
-  var ground = null;
-  var chess = null;
-  var activePuzzle = null;
-  var activeBand = null;
-  var currentPuzzleBand = null;
-  var activeLevel = 0;
-  var configuredMaxLevel = ABSOLUTE_MAX_LEVEL;
-  var solutionIndex = 0;
-  var solvedCurrentPuzzle = false;
-  var bandCache = /* @__PURE__ */ new Map();
-  var shouldRestorePuzzleFromQuery = true;
-  var currentLastMove = [];
-  var playerColor = "white";
-  var isBoardFlipped = false;
-  var soundEnabled = true;
-  var shouldAnimateSetupMove = false;
-  var isAnimatingSetupMove = false;
-  var hintedSquare = null;
-  var puzzleHistory = [];
-  var solvedFlashTimeout = null;
-  var setupMoveReplayTimeout = null;
-  var preloadingBands = /* @__PURE__ */ new Set();
-  var soundUrlCache = /* @__PURE__ */ new Map();
-  var firstAttemptState = {
-    failed: false,
-    recorded: false
+
+  // src/audio.mjs
+  var AudioController = class {
+    constructor() {
+      this.enabled = true;
+      this.soundUrlCache = /* @__PURE__ */ new Map();
+    }
+    setEnabled(enabled) {
+      this.enabled = Boolean(enabled);
+    }
+    soundUrl(name) {
+      if (!this.soundUrlCache.has(name)) {
+        this.soundUrlCache.set(name, assetUrl(SOUND_ASSETS[name]));
+      }
+      return this.soundUrlCache.get(name);
+    }
+    prime() {
+      Object.keys(SOUND_ASSETS).forEach((name) => {
+        const audio2 = new Audio(this.soundUrl(name));
+        audio2.preload = "auto";
+        audio2.volume = SOUND_VOLUME;
+        audio2.load();
+      });
+    }
+    play(name, { reason = "runtime", verbose = false, ignoreSoundEnabled = false } = {}) {
+      if (!SOUND_ASSETS[name]) {
+        if (verbose) {
+          console.log("[PuzzleMountain][SoundDebug]", {
+            event: "missing-asset",
+            name,
+            reason
+          });
+        }
+        return null;
+      }
+      if (!this.enabled && !ignoreSoundEnabled) {
+        if (verbose) {
+          console.log("[PuzzleMountain][SoundDebug]", {
+            event: "blocked-sound-disabled",
+            name,
+            reason,
+            soundEnabled: this.enabled
+          });
+        }
+        return null;
+      }
+      const url = this.soundUrl(name);
+      const audio2 = new Audio(url);
+      audio2.preload = "auto";
+      audio2.volume = SOUND_VOLUME;
+      if (verbose) {
+        const startedAt = performance.now();
+        const log = (event, extra = {}) => {
+          console.log("[PuzzleMountain][SoundDebug]", {
+            name,
+            reason,
+            event,
+            url,
+            currentSrc: audio2.currentSrc,
+            readyState: audio2.readyState,
+            networkState: audio2.networkState,
+            currentTime: audio2.currentTime,
+            duration: Number.isFinite(audio2.duration) ? audio2.duration : null,
+            paused: audio2.paused,
+            muted: audio2.muted,
+            volume: audio2.volume,
+            error: audio2.error ? {
+              code: audio2.error.code,
+              message: audio2.error.message ?? null
+            } : null,
+            elapsedMs: Math.round(performance.now() - startedAt),
+            ...extra
+          });
+        };
+        [
+          "loadstart",
+          "loadedmetadata",
+          "loadeddata",
+          "canplay",
+          "canplaythrough",
+          "play",
+          "playing",
+          "pause",
+          "ended",
+          "error",
+          "stalled",
+          "suspend",
+          "abort"
+        ].forEach((eventName) => {
+          audio2.addEventListener(eventName, () => log(eventName));
+        });
+        log("created", { soundEnabled: this.enabled });
+      }
+      const playback = audio2.play();
+      if (playback && typeof playback.catch === "function") {
+        playback.then(() => {
+          if (verbose) {
+            console.log("[PuzzleMountain][SoundDebug]", {
+              name,
+              reason,
+              event: "play-promise-resolved",
+              url
+            });
+          }
+        }).catch((error) => {
+          console.log("[PuzzleMountain][SoundDebug]", {
+            name,
+            reason,
+            event: "play-promise-rejected",
+            url,
+            message: error?.message ?? String(error)
+          });
+        });
+      }
+      return audio2;
+    }
+    playWithDebug(name, options = {}) {
+      return this.play(name, {
+        reason: "manual-debug",
+        verbose: true,
+        ignoreSoundEnabled: true,
+        ...options
+      });
+    }
+    renderDebugListMarkup() {
+      return Object.entries(SOUND_ASSETS).map(
+        ([name, relativePath]) => `
+          <article class="sound-debug-row">
+            <div>
+              <p class="sound-debug-row-title">${name}</p>
+              <p class="sound-debug-row-meta">${assetUrl(relativePath)}</p>
+            </div>
+            <button class="secondary" type="button" data-sound-debug-play="${name}">Play</button>
+          </article>
+        `
+      ).join("");
+    }
   };
-  function assetUrl(relativePath) {
-    return new URL(relativePath, BASE_URL).toString();
-  }
-  function soundUrl(name) {
-    if (!soundUrlCache.has(name)) {
-      soundUrlCache.set(name, assetUrl(SOUND_ASSETS[name]));
-    }
-    return soundUrlCache.get(name);
-  }
-  function lichessUrlForColor(url, color) {
-    const parsed = new URL(url);
-    const basePath = parsed.pathname.replace(/\/black$/, "");
-    parsed.pathname = color === "black" ? `${basePath}/black` : basePath;
-    return parsed.toString();
-  }
-  function updateLichessLink(url, color) {
-    if (!url) {
-      lichessLink.href = "#";
-      lichessLink.classList.add("hidden");
+  function playMoveSound(audioController, move3) {
+    if (move3.captured) {
+      audioController.play("capture");
       return;
     }
-    lichessLink.href = lichessUrlForColor(url, color);
-    lichessLink.classList.remove("hidden");
+    audioController.play("move");
   }
-  function setMessage(title, body, tone = "neutral") {
-    const box = document.getElementById("message-box");
-    box.dataset.tone = tone;
-    messageTitleNode.textContent = title;
-    messageBodyNode.textContent = body;
-  }
-  function clearSolvedFlash() {
-    const box = document.getElementById("message-box");
-    delete box.dataset.flash;
-    if (solvedFlashTimeout) {
-      window.clearTimeout(solvedFlashTimeout);
-      solvedFlashTimeout = null;
+
+  // src/dom.mjs
+  function requiredElement(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+      throw new Error(`[PuzzleMountain] Missing required DOM element #${id}`);
     }
+    return element;
   }
-  function setBoardLoadingState(isLoading, label = "Loading puzzle band...") {
-    if (!boardLoader || !boardLoaderLabel) {
-      return;
-    }
-    boardLoaderLabel.textContent = label;
-    boardLoader.classList.toggle("hidden", !isLoading);
-    boardElement.setAttribute("aria-busy", isLoading ? "true" : "false");
-  }
-  function flashSolvedMessage() {
-    const box = document.getElementById("message-box");
-    clearSolvedFlash();
-    box.dataset.flash = "solved";
-    solvedFlashTimeout = window.setTimeout(() => {
-      delete box.dataset.flash;
-      solvedFlashTimeout = null;
-    }, 850);
-  }
+  var elements = Object.freeze({
+    board: requiredElement("board"),
+    boardLoader: requiredElement("board-loader"),
+    boardLoaderLabel: requiredElement("board-loader-label"),
+    boardCaption: requiredElement("board-caption"),
+    prevButton: requiredElement("prev-button"),
+    hintButton: requiredElement("hint-button"),
+    settingsButton: requiredElement("settings-button"),
+    settingsDropdown: requiredElement("settings-dropdown"),
+    flipToggle: requiredElement("flip-toggle"),
+    soundToggle: requiredElement("sound-toggle"),
+    maxLevelInput: requiredElement("max-level-input"),
+    makeLastMoveToggle: requiredElement("make-last-move-toggle"),
+    statsButton: requiredElement("stats-button"),
+    soundDebugButton: requiredElement("sound-debug-button"),
+    nextButton: requiredElement("next-button"),
+    lichessLink: requiredElement("lichess-link"),
+    rangeMinNode: requiredElement("range-min"),
+    rangeMaxNode: requiredElement("range-max"),
+    levelValueNode: requiredElement("level-value"),
+    levelForm: requiredElement("level-form"),
+    levelInput: requiredElement("level-input"),
+    puzzleRatingNode: requiredElement("puzzle-rating"),
+    messageBox: requiredElement("message-box"),
+    messageTitleNode: requiredElement("message-title"),
+    messageBodyNode: requiredElement("message-body"),
+    statsModal: requiredElement("stats-modal"),
+    statsCloseButton: requiredElement("stats-close-button"),
+    soundDebugModal: requiredElement("sound-debug-modal"),
+    soundDebugCloseButton: requiredElement("sound-debug-close-button"),
+    soundDebugList: requiredElement("sound-debug-list"),
+    strongThemesNode: requiredElement("strong-themes"),
+    weakThemesNode: requiredElement("weak-themes")
+  });
+
+  // src/lib/chess-utils.mjs
   function toCgColor(color) {
     return color === "w" ? "white" : "black";
   }
-  function levelForBand(band) {
-    return clampLevel(Math.floor(band / 50));
+  function uciToMove(uci) {
+    return {
+      from: uci.slice(0, 2),
+      to: uci.slice(2, 4),
+      promotion: uci.length > 4 ? uci.slice(4, 5) : void 0
+    };
   }
-  function rangeMaxForBand(band) {
-    return band + 49;
+  function uniqueDestinations(moves) {
+    return [...new Set(moves.map((move3) => move3.to))];
   }
-  function updateLevel(band) {
-    const level = levelForBand(band);
-    activeLevel = level;
-    levelValueNode.textContent = level;
-    levelInput.value = level;
+  function computeDests(chess) {
+    const dests = /* @__PURE__ */ new Map();
+    const moves = chess.moves({ verbose: true });
+    moves.forEach((move3) => {
+      const existing = dests.get(move3.from) || [];
+      existing.push(move3);
+      dests.set(move3.from, existing);
+    });
+    return new Map(
+      [...dests.entries()].map(([from, moveList]) => [from, uniqueDestinations(moveList)])
+    );
   }
+
+  // src/lib/level-utils.mjs
   function clampLevel(level, maxLevel = ABSOLUTE_MAX_LEVEL) {
     const normalizedLevel = Number(level);
     if (!Number.isFinite(normalizedLevel)) {
@@ -5506,107 +5605,167 @@
     }
     return Math.min(Math.max(Math.trunc(normalizedLevel), 0), maxLevel);
   }
-  function effectiveMaxLevel() {
-    return clampLevel(configuredMaxLevel);
+  function levelForBand(band, maxLevel = ABSOLUTE_MAX_LEVEL) {
+    return clampLevel(Math.floor(band / 50), maxLevel);
+  }
+  function rangeMaxForBand(band) {
+    return band + 49;
+  }
+  function normalizedBandForLevel({ level, metadata, maxLevel = ABSOLUTE_MAX_LEVEL }) {
+    if (!metadata) {
+      throw new Error("Puzzle metadata is required to resolve a level band.");
+    }
+    const clampedLevel = clampLevel(level, maxLevel);
+    const targetBand = clampedLevel * metadata.bandSize;
+    return metadata.availableBands.find((band) => band >= targetBand) ?? metadata.availableBands.at(-1) ?? metadata.lowestBand;
+  }
+
+  // src/preferences.mjs
+  function readStorage(key, fallbackValue, parser, errorLabel) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw === null) {
+        return fallbackValue;
+      }
+      return parser(raw);
+    } catch (error) {
+      console.warn(`[PuzzleMountain] Could not read ${errorLabel}`, error);
+      return fallbackValue;
+    }
+  }
+  function writeStorage(key, value, serializer, errorLabel) {
+    try {
+      window.localStorage.setItem(key, serializer(value));
+    } catch (error) {
+      console.warn(`[PuzzleMountain] Could not persist ${errorLabel}`, error);
+    }
   }
   function readConfiguredMaxLevel() {
-    try {
-      const raw = window.localStorage.getItem(MAX_LEVEL_STORAGE_KEY);
-      if (raw === null) {
-        return ABSOLUTE_MAX_LEVEL;
-      }
-      return clampLevel(Number(raw));
-    } catch (error) {
-      console.warn("[PuzzleMountain] Could not read max level", error);
-      return ABSOLUTE_MAX_LEVEL;
-    }
+    return readStorage(
+      MAX_LEVEL_STORAGE_KEY,
+      ABSOLUTE_MAX_LEVEL,
+      (raw) => clampLevel(Number(raw)),
+      "max level"
+    );
   }
   function writeConfiguredMaxLevel(level) {
-    try {
-      window.localStorage.setItem(MAX_LEVEL_STORAGE_KEY, String(level));
-    } catch (error) {
-      console.warn("[PuzzleMountain] Could not persist max level", error);
-    }
+    writeStorage(MAX_LEVEL_STORAGE_KEY, level, String, "max level");
   }
   function readSoundEnabled() {
-    try {
-      const raw = window.localStorage.getItem(SOUND_ENABLED_STORAGE_KEY);
-      return raw === null ? true : raw === "true";
-    } catch (error) {
-      console.warn("[PuzzleMountain] Could not read sound preference", error);
-      return true;
-    }
+    return readStorage(
+      SOUND_ENABLED_STORAGE_KEY,
+      true,
+      (raw) => raw === "true",
+      "sound preference"
+    );
   }
   function writeSoundEnabled(enabled) {
-    try {
-      window.localStorage.setItem(SOUND_ENABLED_STORAGE_KEY, String(Boolean(enabled)));
-    } catch (error) {
-      console.warn("[PuzzleMountain] Could not persist sound preference", error);
-    }
-  }
-  function syncMaxLevelInput() {
-    if (!maxLevelInput) {
-      return;
-    }
-    maxLevelInput.value = String(effectiveMaxLevel());
-    levelInput.max = String(effectiveMaxLevel());
-  }
-  function applyConfiguredMaxLevel(level) {
-    configuredMaxLevel = clampLevel(level);
-    syncMaxLevelInput();
-    if (!metadata) {
-      return;
-    }
-    if (activeLevel > effectiveMaxLevel()) {
-      activeBand = normalizedBandForLevel(effectiveMaxLevel());
-      updateRangeDisplay(activeBand);
-      updateUrl({ level: activeLevel, puzzleId: null });
-    }
+    writeStorage(SOUND_ENABLED_STORAGE_KEY, Boolean(enabled), String, "sound preference");
   }
   function readThemeStats() {
-    try {
-      const raw = window.localStorage.getItem(THEME_STATS_STORAGE_KEY);
-      if (!raw) {
-        return {};
-      }
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? parsed : {};
-    } catch (error) {
-      console.warn("[PuzzleMountain] Could not read theme stats", error);
-      return {};
-    }
+    return readStorage(
+      THEME_STATS_STORAGE_KEY,
+      {},
+      (raw) => {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      },
+      "theme stats"
+    );
   }
   function writeThemeStats(stats) {
-    try {
-      window.localStorage.setItem(THEME_STATS_STORAGE_KEY, JSON.stringify(stats));
-    } catch (error) {
-      console.warn("[PuzzleMountain] Could not persist theme stats", error);
-    }
+    writeStorage(THEME_STATS_STORAGE_KEY, stats, JSON.stringify, "theme stats");
   }
+
+  // src/puzzle-repository.mjs
+  function toInteger(value, fallback = 0) {
+    const parsed = Number.parseInt(String(value), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  function normalizeMetadata(metadata) {
+    const availableBands = Array.isArray(metadata?.availableBands) ? metadata.availableBands.map((band) => toInteger(band, Number.NaN)).filter((band) => Number.isFinite(band)).sort((left, right) => left - right) : [];
+    return {
+      ...metadata,
+      bandSize: Math.max(toInteger(metadata?.bandSize, 50), 1),
+      lowestBand: availableBands[0] ?? toInteger(metadata?.lowestBand, 0),
+      availableBands,
+      bandCounts: metadata?.bandCounts && typeof metadata.bandCounts === "object" ? Object.fromEntries(
+        Object.entries(metadata.bandCounts).map(([band, count]) => [
+          String(toInteger(band)),
+          toInteger(count)
+        ])
+      ) : {}
+    };
+  }
+  var PuzzleRepository = class {
+    constructor({ fetchImpl = (...args) => globalThis.fetch(...args) } = {}) {
+      this.fetchImpl = fetchImpl;
+      this.metadata = null;
+      this.bandCache = /* @__PURE__ */ new Map();
+      this.preloadingBands = /* @__PURE__ */ new Set();
+    }
+    hasBand(band) {
+      return this.bandCache.has(band);
+    }
+    async loadMetadata() {
+      if (this.metadata) {
+        return this.metadata;
+      }
+      const url = assetUrl("data/puzzle_bands/metadata.json");
+      console.log("[PuzzleMountain] Loading metadata", url);
+      const response = await this.fetchImpl(url);
+      if (!response.ok) {
+        throw new Error("Could not load puzzle metadata.");
+      }
+      this.metadata = normalizeMetadata(await response.json());
+      console.log("[PuzzleMountain] Metadata loaded", this.metadata);
+      return this.metadata;
+    }
+    async loadBand(band) {
+      if (this.bandCache.has(band)) {
+        console.log("[PuzzleMountain] Using cached band", band);
+        return this.bandCache.get(band);
+      }
+      const url = assetUrl(`data/puzzle_bands/${band}.json`);
+      console.log("[PuzzleMountain] Loading band", band, url);
+      const response = await this.fetchImpl(url);
+      if (!response.ok) {
+        throw new Error(`Could not load puzzle band ${band}.`);
+      }
+      const puzzles = await response.json();
+      this.bandCache.set(band, puzzles);
+      console.log("[PuzzleMountain] Band loaded", { band, count: puzzles.length });
+      return puzzles;
+    }
+    prefetchBand(band) {
+      if (!Number.isFinite(band) || this.bandCache.has(band) || this.preloadingBands.has(band)) {
+        return;
+      }
+      this.preloadingBands.add(band);
+      this.loadBand(band).catch((error) => {
+        console.warn("[PuzzleMountain] Band prefetch failed", { band, error });
+      }).finally(() => {
+        this.preloadingBands.delete(band);
+      });
+    }
+  };
+
+  // src/theme-stats.mjs
   function formatThemeLabel(theme) {
     return theme.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   }
-  function recordThemeOutcome(outcome) {
-    if (!activePuzzle || firstAttemptState.recorded) {
-      return;
-    }
-    const themes = Array.isArray(activePuzzle.themes) ? activePuzzle.themes : [];
-    if (!themes.length) {
-      firstAttemptState.recorded = true;
-      return;
-    }
-    const stats = readThemeStats();
+  function recordThemeOutcome(stats, themes, outcome) {
+    const nextStats = { ...stats };
     themes.forEach((theme) => {
-      const current = stats[theme] && typeof stats[theme] === "object" ? stats[theme] : {};
+      const current = nextStats[theme] && typeof nextStats[theme] === "object" ? nextStats[theme] : {};
       const solved = Number.isFinite(current.solved) ? current.solved : 0;
       const failed = Number.isFinite(current.failed) ? current.failed : 0;
-      stats[theme] = {
+      nextStats[theme] = {
         solved: solved + (outcome === "solved" ? 1 : 0),
         failed: failed + (outcome === "failed" ? 1 : 0)
       };
     });
-    writeThemeStats(stats);
-    firstAttemptState.recorded = true;
+    return nextStats;
   }
   function rankedThemes(stats, predicate, sorter) {
     return Object.entries(stats).map(([theme, counts]) => {
@@ -5622,6 +5781,142 @@
         successRate
       };
     }).filter((entry) => entry.total > 0).filter(predicate).sort(sorter).slice(0, 8);
+  }
+  function summarizeThemeStats(stats) {
+    const strongThemes = rankedThemes(
+      stats,
+      (entry) => entry.solved > entry.failed,
+      (left, right) => right.successRate - left.successRate || right.solved - left.solved || left.failed - right.failed || left.theme.localeCompare(right.theme)
+    );
+    const weakThemes = rankedThemes(
+      stats,
+      (entry) => entry.failed >= entry.solved,
+      (left, right) => right.failed - left.failed || left.successRate - right.successRate || right.total - left.total || left.theme.localeCompare(right.theme)
+    );
+    return { strongThemes, weakThemes };
+  }
+
+  // src/app.mjs
+  var repository = new PuzzleRepository();
+  var audio = new AudioController();
+  var state = {
+    ground: null,
+    chess: null,
+    activePuzzle: null,
+    activeBand: null,
+    currentPuzzleBand: null,
+    activeLevel: 0,
+    configuredMaxLevel: ABSOLUTE_MAX_LEVEL,
+    solutionIndex: 0,
+    solvedCurrentPuzzle: false,
+    shouldRestorePuzzleFromQuery: true,
+    currentLastMove: [],
+    playerColor: "white",
+    isBoardFlipped: false,
+    shouldAnimateSetupMove: false,
+    isAnimatingSetupMove: false,
+    hintedSquare: null,
+    puzzleHistory: [],
+    solvedFlashTimeout: null,
+    setupMoveReplayTimeout: null,
+    firstAttemptState: {
+      failed: false,
+      recorded: false
+    }
+  };
+  function currentMetadata() {
+    if (!repository.metadata) {
+      throw new Error("Puzzle metadata has not been loaded.");
+    }
+    return repository.metadata;
+  }
+  function effectiveMaxLevel() {
+    return clampLevel(state.configuredMaxLevel);
+  }
+  function resolvedBandForLevel(level) {
+    return normalizedBandForLevel({
+      level,
+      metadata: currentMetadata(),
+      maxLevel: effectiveMaxLevel()
+    });
+  }
+  function boardTurnCaption(chess) {
+    return chess.turn() === "w" ? "White to move." : "Black to move.";
+  }
+  function lichessUrlForColor(url, color) {
+    const parsed = new URL(url);
+    const basePath = parsed.pathname.replace(/\/black$/, "");
+    parsed.pathname = color === "black" ? `${basePath}/black` : basePath;
+    return parsed.toString();
+  }
+  function updateLichessLink(url, color) {
+    if (!url) {
+      elements.lichessLink.href = "#";
+      elements.lichessLink.classList.add("hidden");
+      return;
+    }
+    elements.lichessLink.href = lichessUrlForColor(url, color);
+    elements.lichessLink.classList.remove("hidden");
+  }
+  function setMessage(title, body, tone = "neutral") {
+    elements.messageBox.dataset.tone = tone;
+    elements.messageTitleNode.textContent = title;
+    elements.messageBodyNode.textContent = body;
+  }
+  function clearSolvedFlash() {
+    delete elements.messageBox.dataset.flash;
+    if (state.solvedFlashTimeout) {
+      window.clearTimeout(state.solvedFlashTimeout);
+      state.solvedFlashTimeout = null;
+    }
+  }
+  function setBoardLoadingState(isLoading, label = "Loading puzzle band...") {
+    elements.boardLoaderLabel.textContent = label;
+    elements.boardLoader.classList.toggle("hidden", !isLoading);
+    elements.board.setAttribute("aria-busy", isLoading ? "true" : "false");
+  }
+  function flashSolvedMessage() {
+    clearSolvedFlash();
+    elements.messageBox.dataset.flash = "solved";
+    state.solvedFlashTimeout = window.setTimeout(() => {
+      delete elements.messageBox.dataset.flash;
+      state.solvedFlashTimeout = null;
+    }, 850);
+  }
+  function updateLevel(band) {
+    const level = levelForBand(band);
+    state.activeLevel = level;
+    elements.levelValueNode.textContent = String(level);
+    elements.levelInput.value = String(level);
+  }
+  function syncMaxLevelInput() {
+    const maxLevel = String(effectiveMaxLevel());
+    elements.maxLevelInput.value = maxLevel;
+    elements.levelInput.max = maxLevel;
+  }
+  function applyConfiguredMaxLevel(level) {
+    state.configuredMaxLevel = clampLevel(level);
+    syncMaxLevelInput();
+    if (!repository.metadata) {
+      return;
+    }
+    if (state.activeLevel > effectiveMaxLevel()) {
+      state.activeBand = resolvedBandForLevel(effectiveMaxLevel());
+      updateRangeDisplay(state.activeBand);
+      updateUrl({ level: state.activeLevel, puzzleId: null });
+    }
+  }
+  function recordThemeOutcomeForActivePuzzle(outcome) {
+    if (!state.activePuzzle || state.firstAttemptState.recorded) {
+      return;
+    }
+    const themes = Array.isArray(state.activePuzzle.themes) ? state.activePuzzle.themes : [];
+    if (!themes.length) {
+      state.firstAttemptState.recorded = true;
+      return;
+    }
+    writeThemeStats(recordThemeOutcome(readThemeStats(), themes, outcome));
+    state.firstAttemptState.recorded = true;
   }
   function renderThemeList(node2, items, emptyMessage) {
     if (!items.length) {
@@ -5641,57 +5936,42 @@
     ).join("");
   }
   function renderThemeStats() {
-    const stats = readThemeStats();
-    const strongThemes = rankedThemes(
-      stats,
-      (entry) => entry.solved > entry.failed,
-      (left, right) => right.successRate - left.successRate || right.solved - left.solved || left.failed - right.failed || left.theme.localeCompare(right.theme)
+    const { strongThemes, weakThemes } = summarizeThemeStats(readThemeStats());
+    renderThemeList(
+      elements.strongThemesNode,
+      strongThemes,
+      "No strong themes yet. Solve a few puzzles on the first try."
     );
-    const weakThemes = rankedThemes(
-      stats,
-      (entry) => entry.failed >= entry.solved,
-      (left, right) => right.failed - left.failed || left.successRate - right.successRate || right.total - left.total || left.theme.localeCompare(right.theme)
+    renderThemeList(
+      elements.weakThemesNode,
+      weakThemes,
+      "No weak themes yet. Your mistakes will show up here."
     );
-    renderThemeList(strongThemesNode, strongThemes, "No strong themes yet. Solve a few puzzles on the first try.");
-    renderThemeList(weakThemesNode, weakThemes, "No weak themes yet. Your mistakes will show up here.");
   }
   function openStatsModal() {
     renderThemeStats();
-    statsModal.showModal();
+    elements.statsModal.showModal();
   }
   function closeStatsModal() {
-    statsModal.close();
+    elements.statsModal.close();
   }
   function renderSoundDebugList() {
-    if (!soundDebugList) {
-      return;
-    }
-    soundDebugList.innerHTML = Object.entries(SOUND_ASSETS).map(
-      ([name, relativePath]) => `
-        <article class="sound-debug-row">
-          <div>
-            <p class="sound-debug-row-title">${name}</p>
-            <p class="sound-debug-row-meta">${assetUrl(relativePath)}</p>
-          </div>
-          <button class="secondary" type="button" data-sound-debug-play="${name}">Play</button>
-        </article>
-      `
-    ).join("");
+    elements.soundDebugList.innerHTML = audio.renderDebugListMarkup();
   }
   function openSoundDebugModal() {
     renderSoundDebugList();
-    soundDebugModal.showModal();
+    elements.soundDebugModal.showModal();
   }
   function closeSoundDebugModal() {
-    soundDebugModal.close();
+    elements.soundDebugModal.close();
   }
   function updateRangeDisplay(band) {
-    activeBand = band;
-    rangeMinNode.textContent = band;
-    rangeMaxNode.textContent = rangeMaxForBand(band);
+    state.activeBand = band;
+    elements.rangeMinNode.textContent = String(band);
+    elements.rangeMaxNode.textContent = String(rangeMaxForBand(band));
     updateLevel(band);
   }
-  function updateUrl({ level = activeLevel, puzzleId = activePuzzle?.id ?? null } = {}) {
+  function updateUrl({ level = state.activeLevel, puzzleId = state.activePuzzle?.id ?? null } = {}) {
     const url = new URL(window.location.href);
     url.searchParams.set("level", String(level));
     if (puzzleId) {
@@ -5709,11 +5989,6 @@
   function puzzleIdFromQuery() {
     return new URLSearchParams(window.location.search).get("puzzle");
   }
-  function normalizedBandForLevel(level) {
-    const clampedLevel = clampLevel(level, effectiveMaxLevel());
-    const targetBand = clampedLevel * metadata.bandSize;
-    return metadata.availableBands.find((band) => band >= targetBand) ?? metadata.availableBands.at(-1) ?? metadata.lowestBand;
-  }
   function pickRandomPuzzle(puzzles, excludedPuzzleId = null) {
     if (!puzzles.length) {
       return null;
@@ -5722,214 +5997,82 @@
     const pool = candidates.length ? candidates : puzzles;
     return pool[Math.floor(Math.random() * pool.length)];
   }
-  function uciToMove(uci) {
-    return {
-      from: uci.slice(0, 2),
-      to: uci.slice(2, 4),
-      promotion: uci.length > 4 ? uci.slice(4, 5) : void 0
-    };
-  }
-  function uniqueDestinations(moves) {
-    return [...new Set(moves.map((move3) => move3.to))];
-  }
-  function computeDests() {
-    const dests = /* @__PURE__ */ new Map();
-    const moves = chess.moves({ verbose: true });
-    moves.forEach((move3) => {
-      const existing = dests.get(move3.from) || [];
-      existing.push(move3);
-      dests.set(move3.from, existing);
-    });
-    return new Map(
-      [...dests.entries()].map(([from, moveList]) => [from, uniqueDestinations(moveList)])
-    );
-  }
   function updateHistoryControls() {
-    prevButton.disabled = puzzleHistory.length === 0;
+    elements.prevButton.disabled = state.puzzleHistory.length === 0;
   }
   function updateHintControl() {
-    hintButton.disabled = !activePuzzle || solvedCurrentPuzzle || isAnimatingSetupMove;
+    elements.hintButton.disabled = !state.activePuzzle || state.solvedCurrentPuzzle || state.isAnimatingSetupMove;
   }
   function clearHint() {
-    hintedSquare = null;
+    state.hintedSquare = null;
     updateHintControl();
   }
   function historyEntryForCurrentPuzzle() {
-    if (!activePuzzle || currentPuzzleBand === null) {
+    if (!state.activePuzzle || state.currentPuzzleBand === null) {
       return null;
     }
     return {
-      band: currentPuzzleBand,
-      puzzle: activePuzzle
+      band: state.currentPuzzleBand,
+      puzzle: state.activePuzzle
     };
   }
   function boardOrientation() {
-    if (!isBoardFlipped) {
-      return playerColor;
+    if (!state.isBoardFlipped) {
+      return state.playerColor;
     }
-    return playerColor === "white" ? "black" : "white";
+    return state.playerColor === "white" ? "black" : "white";
   }
   function clearSetupMoveReplay() {
-    if (!setupMoveReplayTimeout) {
+    if (!state.setupMoveReplayTimeout) {
       return;
     }
-    window.clearTimeout(setupMoveReplayTimeout);
-    setupMoveReplayTimeout = null;
+    window.clearTimeout(state.setupMoveReplayTimeout);
+    state.setupMoveReplayTimeout = null;
   }
   function closeSettingsMenu() {
-    settingsDropdown.classList.add("hidden");
-    settingsButton.setAttribute("aria-expanded", "false");
+    elements.settingsDropdown.classList.add("hidden");
+    elements.settingsButton.setAttribute("aria-expanded", "false");
   }
   function openSettingsMenu() {
-    settingsDropdown.classList.remove("hidden");
-    settingsButton.setAttribute("aria-expanded", "true");
-  }
-  function syncFlipAccessibilityState() {
-    syncMenuCheckboxState(flipToggle);
-  }
-  function syncSoundAccessibilityState() {
-    syncMenuCheckboxState(soundToggle);
-  }
-  function syncMakeLastMoveAccessibilityState() {
-    syncMenuCheckboxState(makeLastMoveToggle);
+    elements.settingsDropdown.classList.remove("hidden");
+    elements.settingsButton.setAttribute("aria-expanded", "true");
   }
   function syncMenuCheckboxState(input) {
-    if (!input) {
-      return;
-    }
     const option = input.closest(".settings-option");
     if (!option) {
       return;
     }
     option.setAttribute("aria-checked", input.checked ? "true" : "false");
   }
+  function syncFlipAccessibilityState() {
+    syncMenuCheckboxState(elements.flipToggle);
+  }
+  function syncSoundAccessibilityState() {
+    syncMenuCheckboxState(elements.soundToggle);
+  }
+  function syncMakeLastMoveAccessibilityState() {
+    syncMenuCheckboxState(elements.makeLastMoveToggle);
+  }
   function applySoundEnabled(enabled) {
-    soundEnabled = Boolean(enabled);
-    if (soundToggle) {
-      soundToggle.checked = soundEnabled;
-    }
+    audio.setEnabled(enabled);
+    elements.soundToggle.checked = audio.enabled;
     syncSoundAccessibilityState();
   }
-  function primeSounds() {
-    Object.keys(SOUND_ASSETS).forEach((name) => {
-      const audio = new Audio(soundUrl(name));
-      audio.preload = "auto";
-      audio.load();
-    });
-  }
-  function playSoundEffect(name) {
-    return playSoundEffectWithDebug(name, { reason: "runtime", verbose: false, ignoreSoundEnabled: false });
-  }
-  function playSoundEffectWithDebug(name, { reason = "manual-debug", verbose = true, ignoreSoundEnabled = true } = {}) {
-    if (!SOUND_ASSETS[name]) {
-      if (verbose) {
-        console.log("[PuzzleMountain][SoundDebug]", {
-          event: "missing-asset",
-          name,
-          reason
-        });
-      }
-      return null;
-    }
-    if (!soundEnabled && !ignoreSoundEnabled) {
-      if (verbose) {
-        console.log("[PuzzleMountain][SoundDebug]", {
-          event: "blocked-sound-disabled",
-          name,
-          reason,
-          soundEnabled
-        });
-      }
-      return null;
-    }
-    const url = soundUrl(name);
-    const audio = new Audio(url);
-    audio.preload = "auto";
-    if (verbose) {
-      const startedAt = performance.now();
-      const log = (event, extra = {}) => {
-        console.log("[PuzzleMountain][SoundDebug]", {
-          name,
-          reason,
-          event,
-          url,
-          currentSrc: audio.currentSrc,
-          readyState: audio.readyState,
-          networkState: audio.networkState,
-          currentTime: audio.currentTime,
-          duration: Number.isFinite(audio.duration) ? audio.duration : null,
-          paused: audio.paused,
-          muted: audio.muted,
-          volume: audio.volume,
-          error: audio.error ? {
-            code: audio.error.code,
-            message: audio.error.message ?? null
-          } : null,
-          elapsedMs: Math.round(performance.now() - startedAt),
-          ...extra
-        });
-      };
-      [
-        "loadstart",
-        "loadedmetadata",
-        "loadeddata",
-        "canplay",
-        "canplaythrough",
-        "play",
-        "playing",
-        "pause",
-        "ended",
-        "error",
-        "stalled",
-        "suspend",
-        "abort"
-      ].forEach((eventName) => {
-        audio.addEventListener(eventName, () => log(eventName));
-      });
-      log("created", { soundEnabled });
-    }
-    const playback = audio.play();
-    if (playback && typeof playback.catch === "function") {
-      playback.then(() => {
-        if (verbose) {
-          console.log("[PuzzleMountain][SoundDebug]", {
-            name,
-            reason,
-            event: "play-promise-resolved",
-            url
-          });
-        }
-      }).catch((error) => {
-        console.log("[PuzzleMountain][SoundDebug]", {
-          name,
-          reason,
-          event: "play-promise-rejected",
-          url,
-          message: error?.message ?? String(error)
-        });
-      });
-    }
-    return audio;
-  }
-  function playMoveSound(move3) {
-    if (move3.captured) {
-      playSoundEffect("capture");
+  function syncGround() {
+    if (!state.chess) {
       return;
     }
-    playSoundEffect("move");
-  }
-  function syncGround() {
-    const canInteract = !isAnimatingSetupMove;
+    const canInteract = !state.isAnimatingSetupMove;
     const config = {
-      fen: chess.fen(),
+      fen: state.chess.fen(),
       orientation: boardOrientation(),
-      turnColor: toCgColor(chess.turn()),
+      turnColor: toCgColor(state.chess.turn()),
       coordinates: true,
       coordinatesOnSquares: false,
       movable: {
-        color: canInteract ? toCgColor(chess.turn()) : void 0,
+        color: canInteract ? toCgColor(state.chess.turn()) : void 0,
         free: false,
-        dests: canInteract ? computeDests() : /* @__PURE__ */ new Map(),
+        dests: canInteract ? computeDests(state.chess) : /* @__PURE__ */ new Map(),
         showDests: true,
         events: {
           after: handleUserMove
@@ -5950,106 +6093,70 @@
         lastMove: true,
         check: true
       },
-      lastMove: currentLastMove,
+      lastMove: state.currentLastMove,
       drawable: {
         enabled: true,
         visible: true,
-        autoShapes: hintedSquare ? [{ orig: hintedSquare, brush: "green" }] : []
+        autoShapes: state.hintedSquare ? [{ orig: state.hintedSquare, brush: "green" }] : []
       }
     };
-    if (!ground) {
-      boardElement.classList.add("brown");
-      ground = Chessground(boardElement, config);
+    if (!state.ground) {
+      elements.board.classList.add("brown");
+      state.ground = Chessground(elements.board, config);
     } else {
-      ground.set(config);
+      state.ground.set(config);
     }
   }
   function resetGroundToCurrentPosition() {
-    if (!ground) {
+    if (!state.ground) {
       syncGround();
       return;
     }
-    ground.cancelMove();
+    state.ground.cancelMove();
     syncGround();
-    ground.redrawAll();
+    state.ground.redrawAll();
   }
   async function loadMetadata() {
-    if (metadata) {
-      return metadata;
-    }
-    console.log("[PuzzleMountain] Loading metadata", assetUrl("data/puzzle_bands/metadata.json"));
-    const response = await fetch(assetUrl("data/puzzle_bands/metadata.json"));
-    if (!response.ok) {
-      throw new Error("Could not load puzzle metadata.");
-    }
-    metadata = await response.json();
-    console.log("[PuzzleMountain] Metadata loaded", metadata);
-    return metadata;
-  }
-  async function loadBand(band) {
-    if (bandCache.has(band)) {
-      console.log("[PuzzleMountain] Using cached band", band);
-      return bandCache.get(band);
-    }
-    console.log("[PuzzleMountain] Loading band", band, assetUrl(`data/puzzle_bands/${band}.json`));
-    const response = await fetch(assetUrl(`data/puzzle_bands/${band}.json`));
-    if (!response.ok) {
-      throw new Error(`Could not load puzzle band ${band}.`);
-    }
-    const puzzles = await response.json();
-    bandCache.set(band, puzzles);
-    console.log("[PuzzleMountain] Band loaded", { band, count: puzzles.length });
-    return puzzles;
-  }
-  function prefetchBand(band) {
-    if (!Number.isFinite(band) || bandCache.has(band) || preloadingBands.has(band)) {
-      return;
-    }
-    preloadingBands.add(band);
-    loadBand(band).catch((error) => {
-      console.warn("[PuzzleMountain] Band prefetch failed", { band, error });
-    }).finally(() => {
-      preloadingBands.delete(band);
-    });
+    return repository.loadMetadata();
   }
   function prefetchLikelyNextBand() {
-    if (!metadata) {
+    if (!repository.metadata) {
       return;
     }
-    const nextBand = normalizedBandForLevel(Math.min(activeLevel + 1, effectiveMaxLevel()));
-    if (nextBand !== activeBand) {
-      prefetchBand(nextBand);
+    const nextBand = resolvedBandForLevel(Math.min(state.activeLevel + 1, effectiveMaxLevel()));
+    if (nextBand !== state.activeBand) {
+      repository.prefetchBand(nextBand);
     }
   }
   async function applyPuzzleToBoard(puzzle) {
     clearSetupMoveReplay();
-    isAnimatingSetupMove = false;
+    state.isAnimatingSetupMove = false;
     const setup = uciToMove(puzzle.setupMove);
     const readyPosition = new Chess(puzzle.fen);
     readyPosition.move(setup);
-    playerColor = toCgColor(readyPosition.turn());
-    updateLichessLink(puzzle.lichessUrl, playerColor);
+    state.playerColor = toCgColor(readyPosition.turn());
+    updateLichessLink(puzzle.lichessUrl, state.playerColor);
     clearHint();
-    if (!shouldAnimateSetupMove) {
-      chess = readyPosition;
-      currentLastMove = [setup.from, setup.to];
-      boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
+    if (!state.shouldAnimateSetupMove) {
+      state.chess = readyPosition;
+      state.currentLastMove = [setup.from, setup.to];
+      elements.boardCaption.textContent = boardTurnCaption(state.chess);
       syncGround();
       return;
     }
-    chess = new Chess(puzzle.fen);
-    currentLastMove = [];
-    isAnimatingSetupMove = true;
-    boardCaption.textContent = "Replaying the move that led to this puzzle.";
+    state.chess = new Chess(puzzle.fen);
+    state.currentLastMove = [];
+    state.isAnimatingSetupMove = true;
+    elements.boardCaption.textContent = "Replaying the move that led to this puzzle.";
     updateHintControl();
     syncGround();
     await new Promise((resolve) => {
-      setupMoveReplayTimeout = window.setTimeout(() => {
-        setupMoveReplayTimeout = null;
-        chess.move(setup);
-        currentLastMove = [setup.from, setup.to];
-        isAnimatingSetupMove = false;
-        boardCaption.textContent = chess.turn() === "w" ? "White to move." : "Black to move.";
+      state.setupMoveReplayTimeout = window.setTimeout(() => {
+        state.setupMoveReplayTimeout = null;
+        state.chess.move(setup);
+        state.currentLastMove = [setup.from, setup.to];
+        state.isAnimatingSetupMove = false;
+        elements.boardCaption.textContent = boardTurnCaption(state.chess);
         updateHintControl();
         syncGround();
         resolve();
@@ -6057,59 +6164,58 @@
     });
   }
   async function presentPuzzle(puzzle, band) {
-    activeBand = band;
-    currentPuzzleBand = band;
-    activePuzzle = puzzle;
-    solutionIndex = 0;
-    solvedCurrentPuzzle = false;
-    shouldRestorePuzzleFromQuery = false;
-    firstAttemptState = {
+    state.activeBand = band;
+    state.currentPuzzleBand = band;
+    state.activePuzzle = puzzle;
+    state.solutionIndex = 0;
+    state.solvedCurrentPuzzle = false;
+    state.shouldRestorePuzzleFromQuery = false;
+    state.firstAttemptState = {
       failed: false,
       recorded: false
     };
     updateRangeDisplay(band);
-    updateUrl({ level: activeLevel, puzzleId: activePuzzle.id });
-    puzzleRatingNode.textContent = `Rating ${activePuzzle.rating}`;
+    updateUrl({ level: state.activeLevel, puzzleId: state.activePuzzle.id });
+    elements.puzzleRatingNode.textContent = `Rating ${state.activePuzzle.rating}`;
     updateHistoryControls();
     updateHintControl();
     console.log("[PuzzleMountain] Puzzle selected", {
-      id: activePuzzle.id,
-      rating: activePuzzle.rating,
+      id: state.activePuzzle.id,
+      rating: state.activePuzzle.rating,
       band,
-      level: activeLevel
+      level: state.activeLevel
     });
-    await applyPuzzleToBoard(activePuzzle);
+    await applyPuzzleToBoard(state.activePuzzle);
     prefetchLikelyNextBand();
   }
   async function loadPuzzle({ useQueryPuzzle = false, pushHistory = true } = {}) {
     setMessage("Loading puzzle", "Loading static puzzle data for your current band.");
-    nextButton.disabled = true;
-    const band = activeBand ?? normalizedBandForLevel(parsedLevelFromQuery() ?? levelForBand(metadata.lowestBand));
+    elements.nextButton.disabled = true;
+    const band = state.activeBand ?? resolvedBandForLevel(parsedLevelFromQuery() ?? levelForBand(currentMetadata().lowestBand));
     updateRangeDisplay(band);
     console.log("[PuzzleMountain] Loading puzzle", {
       activeBand: band,
-      activeLevel,
+      activeLevel: state.activeLevel,
       useQueryPuzzle,
       requestedPuzzleId: useQueryPuzzle ? puzzleIdFromQuery() : null
     });
-    const bandIsCached = bandCache.has(band);
-    if (!bandIsCached) {
+    if (!repository.hasBand(band)) {
       setBoardLoadingState(true, "Loading puzzle band...");
     }
     try {
-      const puzzles = await loadBand(band);
+      const puzzles = await repository.loadBand(band);
       const requestedPuzzleId = useQueryPuzzle ? puzzleIdFromQuery() : null;
-      const puzzle = puzzles.find((candidate) => candidate.id === requestedPuzzleId) ?? pickRandomPuzzle(puzzles, activePuzzle && activeBand === band ? activePuzzle.id : null);
+      const puzzle = puzzles.find((candidate) => candidate.id === requestedPuzzleId) ?? pickRandomPuzzle(puzzles, state.activePuzzle && state.activeBand === band ? state.activePuzzle.id : null);
       if (!puzzle) {
         throw new Error("No puzzles are available for this band.");
       }
       if (pushHistory) {
         const historyEntry = historyEntryForCurrentPuzzle();
         if (historyEntry) {
-          puzzleHistory.push(historyEntry);
+          state.puzzleHistory.push(historyEntry);
         }
       }
-      if (shouldAnimateSetupMove) {
+      if (state.shouldAnimateSetupMove) {
         setMessage("Watch closely", "Replaying the last move that led to this puzzle.");
       }
       await presentPuzzle(puzzle, band);
@@ -6119,35 +6225,35 @@
     }
   }
   async function handleSolved() {
-    const shouldIncreaseLevel = !firstAttemptState.failed && activeLevel < effectiveMaxLevel();
+    const shouldIncreaseLevel = !state.firstAttemptState.failed && state.activeLevel < effectiveMaxLevel();
     if (shouldIncreaseLevel) {
-      recordThemeOutcome("solved");
+      recordThemeOutcomeForActivePuzzle("solved");
     }
-    solvedCurrentPuzzle = true;
+    state.solvedCurrentPuzzle = true;
     updateHintControl();
     setMessage(
       "Correct",
-      shouldIncreaseLevel ? "You climbed 50 rating points. Loading the next puzzle." : firstAttemptState.failed ? "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle." : "Solved. You are already at your max level, so the next puzzle stays in this range.",
+      shouldIncreaseLevel ? "You climbed 50 rating points. Loading the next puzzle." : state.firstAttemptState.failed ? "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle." : "Solved. You are already at your max level, so the next puzzle stays in this range.",
       "success"
     );
     flashSolvedMessage();
-    activeBand = normalizedBandForLevel(shouldIncreaseLevel ? activeLevel + 1 : activeLevel);
-    updateRangeDisplay(activeBand);
-    updateUrl({ level: activeLevel, puzzleId: null });
+    state.activeBand = resolvedBandForLevel(shouldIncreaseLevel ? state.activeLevel + 1 : state.activeLevel);
+    updateRangeDisplay(state.activeBand);
+    updateUrl({ level: state.activeLevel, puzzleId: null });
     window.setTimeout(() => {
       loadPuzzle().catch(handleLoadError);
     }, SOLVED_MESSAGE_DELAY_MS);
   }
   function handleFailure() {
-    const shouldDropLevel = !firstAttemptState.failed;
+    const shouldDropLevel = !state.firstAttemptState.failed;
     if (shouldDropLevel) {
-      recordThemeOutcome("failed");
-      firstAttemptState.failed = true;
-      activeBand = normalizedBandForLevel(Math.max(activeLevel - 1, 0));
-      updateRangeDisplay(activeBand);
-      updateUrl({ level: activeLevel, puzzleId: null });
+      recordThemeOutcomeForActivePuzzle("failed");
+      state.firstAttemptState.failed = true;
+      state.activeBand = resolvedBandForLevel(Math.max(state.activeLevel - 1, 0));
+      updateRangeDisplay(state.activeBand);
+      updateUrl({ level: state.activeLevel, puzzleId: null });
     }
-    currentLastMove = [];
+    state.currentLastMove = [];
     clearHint();
     resetGroundToCurrentPosition();
     setMessage(
@@ -6155,207 +6261,213 @@
       shouldDropLevel ? "That move does not match the solution. You dropped one level." : "That move does not match the solution. You already took the level penalty for this puzzle.",
       "danger"
     );
-    nextButton.disabled = false;
+    elements.nextButton.disabled = false;
   }
   function playExpectedReplyIfNeeded() {
-    if (solutionIndex >= activePuzzle.solution.length) {
-      handleSolved();
+    if (!state.activePuzzle) {
       return;
     }
-    const reply = uciToMove(activePuzzle.solution[solutionIndex]);
-    const result = chess.move(reply);
+    if (state.solutionIndex >= state.activePuzzle.solution.length) {
+      handleSolved().catch(handleLoadError);
+      return;
+    }
+    const reply = uciToMove(state.activePuzzle.solution[state.solutionIndex]);
+    const result = state.chess.move(reply);
     if (!result) {
       handleLoadError(new Error("Could not play the puzzle reply."));
       return;
     }
-    currentLastMove = [reply.from, reply.to];
-    solutionIndex += 1;
+    state.currentLastMove = [reply.from, reply.to];
+    state.solutionIndex += 1;
     syncGround();
-    playMoveSound(result);
-    if (solutionIndex >= activePuzzle.solution.length) {
-      handleSolved();
+    playMoveSound(audio, result);
+    if (state.solutionIndex >= state.activePuzzle.solution.length) {
+      handleSolved().catch(handleLoadError);
     } else {
       setMessage("Keep going", "Good. The reply was played. Find the next move.", "success");
     }
   }
   function handleUserMove(orig, dest) {
-    if (!activePuzzle || solvedCurrentPuzzle || isAnimatingSetupMove) {
+    if (!state.activePuzzle || state.solvedCurrentPuzzle || state.isAnimatingSetupMove) {
       return;
     }
-    const expected = activePuzzle.solution[solutionIndex];
+    const expected = state.activePuzzle.solution[state.solutionIndex];
     const attempted = `${orig}${dest}${expected.length > 4 ? expected.slice(4, 5) : ""}`;
     if (attempted !== expected) {
       handleFailure();
       return;
     }
     const move3 = uciToMove(expected);
-    const result = chess.move(move3);
+    const result = state.chess.move(move3);
     if (!result) {
       handleFailure();
       return;
     }
-    currentLastMove = [move3.from, move3.to];
-    solutionIndex += 1;
+    state.currentLastMove = [move3.from, move3.to];
+    state.solutionIndex += 1;
     clearHint();
     syncGround();
-    playMoveSound(result);
+    playMoveSound(audio, result);
     window.setTimeout(playExpectedReplyIfNeeded, 350);
   }
   function handleLoadError(error) {
     console.error("[PuzzleMountain] Load error", error);
-    nextButton.disabled = false;
+    elements.nextButton.disabled = false;
     setBoardLoadingState(false);
-    setMessage("Load failed", error.message, "danger");
+    setMessage("Load failed", error instanceof Error ? error.message : String(error), "danger");
   }
-  nextButton.addEventListener("click", () => {
-    loadPuzzle().catch(handleLoadError);
-  });
-  prevButton.addEventListener("click", () => {
-    const previous = puzzleHistory.pop();
-    if (!previous) {
-      updateHistoryControls();
-      return;
-    }
-    nextButton.disabled = true;
-    if (shouldAnimateSetupMove) {
-      setMessage("Watch closely", "Replaying the last move that led to this puzzle.");
-    }
-    presentPuzzle(previous.puzzle, previous.band).then(() => {
-      setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
-    }).catch(handleLoadError);
-  });
-  hintButton.addEventListener("click", () => {
-    if (!activePuzzle || solvedCurrentPuzzle || isAnimatingSetupMove) {
-      return;
-    }
-    const expected = activePuzzle.solution[solutionIndex];
-    if (!expected) {
-      return;
-    }
-    hintedSquare = expected.slice(0, 2);
-    syncGround();
-    setMessage("Hint", `The piece on ${hintedSquare.toUpperCase()} is the one to move.`);
-  });
-  flipToggle.addEventListener("change", () => {
-    isBoardFlipped = flipToggle.checked;
-    syncFlipAccessibilityState();
-    if (!chess) {
-      return;
-    }
-    syncGround();
-  });
-  soundToggle.addEventListener("change", () => {
-    applySoundEnabled(soundToggle.checked);
-    writeSoundEnabled(soundEnabled);
-  });
-  makeLastMoveToggle.addEventListener("change", () => {
-    shouldAnimateSetupMove = makeLastMoveToggle.checked;
-    syncMakeLastMoveAccessibilityState();
-  });
-  settingsButton.addEventListener("click", () => {
-    if (settingsDropdown.classList.contains("hidden")) {
-      openSettingsMenu();
-      return;
-    }
-    closeSettingsMenu();
-  });
-  statsButton.addEventListener("click", () => {
-    openStatsModal();
-  });
-  soundDebugButton.addEventListener("click", () => {
-    openSoundDebugModal();
-  });
-  document.addEventListener("click", (event) => {
-    if (!settingsButton || !settingsDropdown) {
-      return;
-    }
-    const target = event.target;
-    if (!(target instanceof Node)) {
-      return;
-    }
-    if (settingsButton.contains(target) || settingsDropdown.contains(target)) {
-      return;
-    }
-    closeSettingsMenu();
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
+  function bindEventListeners() {
+    elements.nextButton.addEventListener("click", () => {
+      loadPuzzle().catch(handleLoadError);
+    });
+    elements.prevButton.addEventListener("click", () => {
+      const previous = state.puzzleHistory.pop();
+      if (!previous) {
+        updateHistoryControls();
+        return;
+      }
+      elements.nextButton.disabled = true;
+      if (state.shouldAnimateSetupMove) {
+        setMessage("Watch closely", "Replaying the last move that led to this puzzle.");
+      }
+      presentPuzzle(previous.puzzle, previous.band).then(() => {
+        setMessage("Previous puzzle", "You returned to the previous puzzle in your session history.");
+      }).catch(handleLoadError);
+    });
+    elements.hintButton.addEventListener("click", () => {
+      if (!state.activePuzzle || state.solvedCurrentPuzzle || state.isAnimatingSetupMove) {
+        return;
+      }
+      const expected = state.activePuzzle.solution[state.solutionIndex];
+      if (!expected) {
+        return;
+      }
+      state.hintedSquare = expected.slice(0, 2);
+      syncGround();
+      setMessage("Hint", `The piece on ${state.hintedSquare.toUpperCase()} is the one to move.`);
+    });
+    elements.flipToggle.addEventListener("change", () => {
+      state.isBoardFlipped = elements.flipToggle.checked;
+      syncFlipAccessibilityState();
+      if (!state.chess) {
+        return;
+      }
+      syncGround();
+    });
+    elements.soundToggle.addEventListener("change", () => {
+      applySoundEnabled(elements.soundToggle.checked);
+      writeSoundEnabled(audio.enabled);
+    });
+    elements.makeLastMoveToggle.addEventListener("change", () => {
+      state.shouldAnimateSetupMove = elements.makeLastMoveToggle.checked;
+      syncMakeLastMoveAccessibilityState();
+    });
+    elements.settingsButton.addEventListener("click", () => {
+      if (elements.settingsDropdown.classList.contains("hidden")) {
+        openSettingsMenu();
+        return;
+      }
       closeSettingsMenu();
-    }
-  });
-  statsCloseButton.addEventListener("click", () => {
-    closeStatsModal();
-  });
-  statsModal.addEventListener("click", (event) => {
-    if (event.target === statsModal) {
+    });
+    elements.statsButton.addEventListener("click", openStatsModal);
+    elements.soundDebugButton.addEventListener("click", () => {
+      closeSettingsMenu();
+      openSoundDebugModal();
+    });
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (elements.settingsButton.contains(target) || elements.settingsDropdown.contains(target)) {
+        return;
+      }
+      closeSettingsMenu();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeSettingsMenu();
+      }
+    });
+    elements.statsCloseButton.addEventListener("click", closeStatsModal);
+    elements.statsModal.addEventListener("click", (event) => {
+      if (event.target === elements.statsModal) {
+        closeStatsModal();
+      }
+    });
+    elements.statsModal.addEventListener("cancel", (event) => {
+      event.preventDefault();
       closeStatsModal();
-    }
-  });
-  statsModal.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeStatsModal();
-  });
-  soundDebugCloseButton.addEventListener("click", () => {
-    closeSoundDebugModal();
-  });
-  soundDebugModal.addEventListener("click", (event) => {
-    if (event.target === soundDebugModal) {
+    });
+    elements.soundDebugCloseButton.addEventListener("click", closeSoundDebugModal);
+    elements.soundDebugModal.addEventListener("click", (event) => {
+      if (event.target === elements.soundDebugModal) {
+        closeSoundDebugModal();
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const soundName = target.dataset.soundDebugPlay;
+      if (!soundName) {
+        return;
+      }
+      audio.playWithDebug(soundName, { reason: "manual-debug", verbose: true });
+    });
+    elements.soundDebugModal.addEventListener("cancel", (event) => {
+      event.preventDefault();
       closeSoundDebugModal();
-      return;
-    }
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-    const soundName = target.dataset.soundDebugPlay;
-    if (!soundName) {
-      return;
-    }
-    playSoundEffectWithDebug(soundName, { reason: "manual-debug", verbose: true });
-  });
-  soundDebugModal.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeSoundDebugModal();
-  });
-  levelForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const requestedLevel = Number(levelInput.value);
-    if (!Number.isInteger(requestedLevel) || requestedLevel < 0 || requestedLevel > effectiveMaxLevel()) {
-      setMessage("Invalid level", `Level must be a whole number from 0 to ${effectiveMaxLevel()}.`, "danger");
-      return;
-    }
-    activeBand = normalizedBandForLevel(requestedLevel);
-    updateRangeDisplay(activeBand);
-    updateUrl({ level: activeLevel, puzzleId: null });
-    loadPuzzle().catch(handleLoadError);
-  });
-  maxLevelInput.addEventListener("change", () => {
-    const requestedMaxLevel = Number(maxLevelInput.value);
-    if (!Number.isInteger(requestedMaxLevel) || requestedMaxLevel < 0 || requestedMaxLevel > ABSOLUTE_MAX_LEVEL) {
-      syncMaxLevelInput();
-      setMessage("Invalid max level", `Max level must be a whole number from 0 to ${ABSOLUTE_MAX_LEVEL}.`, "danger");
-      return;
-    }
-    writeConfiguredMaxLevel(requestedMaxLevel);
-    applyConfiguredMaxLevel(requestedMaxLevel);
-    loadPuzzle({ pushHistory: false }).catch(handleLoadError);
-  });
+    });
+    elements.levelForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const requestedLevel = Number(elements.levelInput.value);
+      if (!Number.isInteger(requestedLevel) || requestedLevel < 0 || requestedLevel > effectiveMaxLevel()) {
+        setMessage(
+          "Invalid level",
+          `Level must be a whole number from 0 to ${effectiveMaxLevel()}.`,
+          "danger"
+        );
+        return;
+      }
+      state.activeBand = resolvedBandForLevel(requestedLevel);
+      updateRangeDisplay(state.activeBand);
+      updateUrl({ level: state.activeLevel, puzzleId: null });
+      loadPuzzle().catch(handleLoadError);
+    });
+    elements.maxLevelInput.addEventListener("change", () => {
+      const requestedMaxLevel = Number(elements.maxLevelInput.value);
+      if (!Number.isInteger(requestedMaxLevel) || requestedMaxLevel < 0 || requestedMaxLevel > ABSOLUTE_MAX_LEVEL) {
+        syncMaxLevelInput();
+        setMessage(
+          "Invalid max level",
+          `Max level must be a whole number from 0 to ${ABSOLUTE_MAX_LEVEL}.`,
+          "danger"
+        );
+        return;
+      }
+      writeConfiguredMaxLevel(requestedMaxLevel);
+      applyConfiguredMaxLevel(requestedMaxLevel);
+      loadPuzzle({ pushHistory: false }).catch(handleLoadError);
+    });
+  }
   async function init() {
     try {
-      configuredMaxLevel = readConfiguredMaxLevel();
+      state.configuredMaxLevel = readConfiguredMaxLevel();
       applySoundEnabled(readSoundEnabled());
-      primeSounds();
+      audio.prime();
       syncMaxLevelInput();
       await loadMetadata();
       const requestedLevel = parsedLevelFromQuery();
-      applyConfiguredMaxLevel(configuredMaxLevel);
-      activeBand = normalizedBandForLevel(requestedLevel ?? levelForBand(metadata.lowestBand));
-      updateRangeDisplay(activeBand);
-      await loadPuzzle({ useQueryPuzzle: shouldRestorePuzzleFromQuery });
+      applyConfiguredMaxLevel(state.configuredMaxLevel);
+      state.activeBand = resolvedBandForLevel(requestedLevel ?? levelForBand(currentMetadata().lowestBand));
+      updateRangeDisplay(state.activeBand);
+      await loadPuzzle({ useQueryPuzzle: state.shouldRestorePuzzleFromQuery });
     } catch (error) {
       handleLoadError(error);
     }
   }
+  bindEventListeners();
   updateHistoryControls();
   updateHintControl();
   syncFlipAccessibilityState();

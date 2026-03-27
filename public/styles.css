@@ -315,6 +315,15 @@ body {
   background: rgba(198, 93, 46, 0.08);
 }
 
+.settings-action {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
 .settings-text-label {
   font-size: 0.95rem;
   line-height: 1.2;

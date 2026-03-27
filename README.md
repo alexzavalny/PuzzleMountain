@@ -21,6 +21,22 @@ Static GitHub Pages site for climbing through the Lichess puzzle database in 50-
 
 3. For local preview, serve `docs/` with any static file server.
 
+## Source layout
+
+- `src/` contains the application source code, split by responsibility:
+  - `app.mjs` wires the UI together.
+  - `audio.mjs`, `puzzle-repository.mjs`, and `preferences.mjs` handle runtime services.
+  - `lib/` contains pure helpers for chess and level logic.
+- `public/` contains static assets only: styles, audio, and prebuilt puzzle-band data.
+- `docs/` is generated output for GitHub Pages and should be treated as a build artifact.
+
+## Verification
+
+```bash
+npm test
+npm run build
+```
+
 ## Notes
 
 - Raw source CSV bands live in `/Users/alex/Projects/PuzzleMountain/data/puzzle_bands`.

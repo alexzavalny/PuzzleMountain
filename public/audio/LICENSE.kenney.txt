@@ -1,17 +1,9 @@
-Chess sound sources used in PuzzleMountain
+Current sound files in use
 
-1. chess_pieces.wav.ogg
-Source: https://opengameart.org/content/chess-pieces
-Direct file: https://opengameart.org/sites/default/files/chess_pieces.wav.ogg
-License: CC0
+1. move-self.mp3
+Source URL: https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3
 
-2. board-game-pieces.wav.ogg
-Source: https://opengameart.org/content/board-game-pieces
-Direct file: https://opengameart.org/sites/default/files/board-game-pieces.wav.ogg
-License: CC0
+2. capture.mp3
+Source URL: https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3
 
-3. 80 CC0 RPG SFX
-Source: https://opengameart.org/content/80-cc0-rpg-sfx
-Direct file: https://opengameart.org/sites/default/files/80-CC0-RPG-SFX_0.zip
-Files used: item_wood_01.ogg, wood_04.ogg, wood_05.ogg
-License: CC0
+Legacy OGG files remain in this directory but are not referenced by the app.

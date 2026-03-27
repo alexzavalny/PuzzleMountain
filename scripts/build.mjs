@@ -4,11 +4,15 @@ import path from "node:path";
 import { build } from "esbuild";
 
 const rootDir = process.cwd();
-const staticBandsDir = path.join(rootDir, "public", "data", "puzzle_bands");
+const publicDir = path.join(rootDir, "public");
+const sourceDir = path.join(rootDir, "src");
+const staticBandsDir = path.join(publicDir, "data", "puzzle_bands");
 const docsDir = path.join(rootDir, "docs");
 const docsBandsDir = path.join(docsDir, "data", "puzzle_bands");
-const audioDir = path.join(rootDir, "public", "audio");
+const audioDir = path.join(publicDir, "audio");
 const docsAudioDir = path.join(docsDir, "audio");
+const appEntryPoint = path.join(sourceDir, "app.mjs");
+const publicStylesPath = path.join(publicDir, "styles.css");
 
 const imageFiles = [
   "black.bishop.png",
@@ -47,12 +51,12 @@ async function main() {
     fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.base.css"), "utf8"),
     fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.brown.css"), "utf8"),
     fs.readFile(path.join(rootDir, "node_modules", "@lichess-org", "chessground", "assets", "chessground.cburnett.css"), "utf8"),
-    fs.readFile(path.join(rootDir, "public", "styles.css"), "utf8")
+    fs.readFile(publicStylesPath, "utf8")
   ]);
 
   await fs.writeFile(path.join(docsDir, "styles.css"), `${baseCss}\n${boardCss}\n${pieceCss}\n${appCss}`);
   await build({
-    entryPoints: [path.join(rootDir, "public", "app.js")],
+    entryPoints: [appEntryPoint],
     bundle: true,
     format: "iife",
     platform: "browser",
