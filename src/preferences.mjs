@@ -1,6 +1,7 @@
 import {
   MAX_LEVEL_STORAGE_KEY,
   SOUND_ENABLED_STORAGE_KEY,
+  STOPWATCH_VISIBLE_STORAGE_KEY,
   THEME_STATS_STORAGE_KEY,
   ABSOLUTE_MAX_LEVEL
 } from "./constants.mjs";
@@ -52,6 +53,19 @@ export function readSoundEnabled() {
 
 export function writeSoundEnabled(enabled) {
   writeStorage(SOUND_ENABLED_STORAGE_KEY, Boolean(enabled), String, "sound preference");
+}
+
+export function readStopwatchVisible() {
+  return readStorage(
+    STOPWATCH_VISIBLE_STORAGE_KEY,
+    true,
+    (raw) => raw === "true",
+    "stopwatch visibility"
+  );
+}
+
+export function writeStopwatchVisible(visible) {
+  writeStorage(STOPWATCH_VISIBLE_STORAGE_KEY, Boolean(visible), String, "stopwatch visibility");
 }
 
 export function readThemeStats() {

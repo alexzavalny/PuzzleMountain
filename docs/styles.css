@@ -573,6 +573,22 @@ body {
   transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
+.stopwatch-panel {
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(109, 83, 52, 0.1);
+}
+
+.stopwatch-value {
+  margin: 8px 0 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent-deep);
+}
+
 .message-box[data-tone="success"] {
   border-color: rgba(45, 106, 79, 0.32);
 }
