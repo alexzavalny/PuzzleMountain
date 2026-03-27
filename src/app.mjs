@@ -12,9 +12,11 @@ import { clampLevel, levelForBand, normalizedBandForLevel, rangeMaxForBand } fro
 import {
   readConfiguredMaxLevel,
   readSoundEnabled,
+  readStopwatchVisible,
   readThemeStats,
   writeConfiguredMaxLevel,
   writeSoundEnabled,
+  writeStopwatchVisible,
   writeThemeStats
 } from "./preferences.mjs";
 import { PuzzleRepository } from "./puzzle-repository.mjs";
@@ -37,12 +39,16 @@ const state = {
   currentLastMove: [],
   playerColor: "white",
   isBoardFlipped: false,
+  isStopwatchVisible: true,
   shouldAnimateSetupMove: false,
   isAnimatingSetupMove: false,
   hintedSquare: null,
   puzzleHistory: [],
   solvedFlashTimeout: null,
   setupMoveReplayTimeout: null,
+  stopwatchInterval: null,
+  stopwatchStartedAt: null,
+  stopwatchElapsedMs: 0,
   firstAttemptState: {
     failed: false,
     recorded: false
@@ -329,6 +335,10 @@ function syncSoundAccessibilityState() {
   syncMenuCheckboxState(elements.soundToggle);
 }
 
+function syncStopwatchAccessibilityState() {
+  syncMenuCheckboxState(elements.stopwatchToggle);
+}
+
 function syncMakeLastMoveAccessibilityState() {
   syncMenuCheckboxState(elements.makeLastMoveToggle);
 }
@@ -337,6 +347,49 @@ function applySoundEnabled(enabled) {
   audio.setEnabled(enabled);
   elements.soundToggle.checked = audio.enabled;
   syncSoundAccessibilityState();
+}
+
+function formatStopwatch(elapsedMs) {
+  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function renderStopwatch() {
+  elements.stopwatchPanel.classList.toggle("hidden", !state.isStopwatchVisible);
+  elements.stopwatchValue.textContent = formatStopwatch(state.stopwatchElapsedMs);
+}
+
+function stopStopwatch() {
+  if (!state.stopwatchInterval) {
+    return;
+  }
+
+  window.clearInterval(state.stopwatchInterval);
+  state.stopwatchInterval = null;
+}
+
+function startStopwatch() {
+  stopStopwatch();
+  state.stopwatchStartedAt = Date.now();
+  state.stopwatchElapsedMs = 0;
+  renderStopwatch();
+  state.stopwatchInterval = window.setInterval(() => {
+    if (state.stopwatchStartedAt === null) {
+      return;
+    }
+
+    state.stopwatchElapsedMs = Date.now() - state.stopwatchStartedAt;
+    renderStopwatch();
+  }, 1000);
+}
+
+function applyStopwatchVisible(visible) {
+  state.isStopwatchVisible = visible;
+  elements.stopwatchToggle.checked = visible;
+  syncStopwatchAccessibilityState();
+  renderStopwatch();
 }
 
 function syncGround() {
@@ -461,6 +514,7 @@ async function presentPuzzle(puzzle, band) {
   state.activeBand = band;
   state.currentPuzzleBand = band;
   state.activePuzzle = puzzle;
+  startStopwatch();
   state.solutionIndex = 0;
   state.solvedCurrentPuzzle = false;
   state.shouldRestorePuzzleFromQuery = false;
@@ -707,6 +761,11 @@ function bindEventListeners() {
     writeSoundEnabled(audio.enabled);
   });
 
+  elements.stopwatchToggle.addEventListener("change", () => {
+    applyStopwatchVisible(elements.stopwatchToggle.checked);
+    writeStopwatchVisible(state.isStopwatchVisible);
+  });
+
   elements.makeLastMoveToggle.addEventListener("change", () => {
     state.shouldAnimateSetupMove = elements.makeLastMoveToggle.checked;
     syncMakeLastMoveAccessibilityState();
@@ -834,6 +893,7 @@ async function init() {
   try {
     state.configuredMaxLevel = readConfiguredMaxLevel();
     applySoundEnabled(readSoundEnabled());
+    applyStopwatchVisible(readStopwatchVisible());
     audio.prime();
     syncMaxLevelInput();
     await loadMetadata();
@@ -854,6 +914,8 @@ updateHistoryControls();
 updateHintControl();
 syncFlipAccessibilityState();
 syncSoundAccessibilityState();
+syncStopwatchAccessibilityState();
 syncMakeLastMoveAccessibilityState();
+renderStopwatch();
 setBoardLoadingState(true, "Preparing board...");
 init();

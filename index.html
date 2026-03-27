@@ -51,6 +51,11 @@
             <p id="puzzle-rating" class="puzzle-meta">Loading...</p>
           </div>
 
+          <div id="stopwatch-panel" class="stopwatch-panel">
+            <p class="label">Stopwatch</p>
+            <p id="stopwatch-value" class="stopwatch-value" aria-live="off">00:00</p>
+          </div>
+
           <div class="message-box" id="message-box">
             <p id="message-title" class="message-title">Loading puzzle</p>
             <p id="message-body" class="message-body">Loading static puzzle data for your current band.</p>
@@ -79,6 +84,10 @@
                 <label class="settings-option" for="sound-toggle" role="menuitemcheckbox" aria-checked="true">
                   <input id="sound-toggle" class="toggle-chip-input" type="checkbox" checked>
                   <span class="toggle-chip-label">Sound</span>
+                </label>
+                <label class="settings-option" for="stopwatch-toggle" role="menuitemcheckbox" aria-checked="true">
+                  <input id="stopwatch-toggle" class="toggle-chip-input" type="checkbox" checked>
+                  <span class="toggle-chip-label">Stopwatch</span>
                 </label>
                 <label class="settings-option settings-option-stack" for="max-level-input">
                   <span class="settings-text-label">Max level</span>
