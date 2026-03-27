@@ -14,6 +14,7 @@ const soundToggle = document.getElementById("sound-toggle");
 const maxLevelInput = document.getElementById("max-level-input");
 const makeLastMoveToggle = document.getElementById("make-last-move-toggle");
 const statsButton = document.getElementById("stats-button");
+const soundDebugButton = document.getElementById("sound-debug-button");
 const nextButton = document.getElementById("next-button");
 const lichessLink = document.getElementById("lichess-link");
 const rangeMinNode = document.getElementById("range-min");
@@ -26,6 +27,9 @@ const messageTitleNode = document.getElementById("message-title");
 const messageBodyNode = document.getElementById("message-body");
 const statsModal = document.getElementById("stats-modal");
 const statsCloseButton = document.getElementById("stats-close-button");
+const soundDebugModal = document.getElementById("sound-debug-modal");
+const soundDebugCloseButton = document.getElementById("sound-debug-close-button");
+const soundDebugList = document.getElementById("sound-debug-list");
 const strongThemesNode = document.getElementById("strong-themes");
 const weakThemesNode = document.getElementById("weak-themes");
 
@@ -367,6 +371,35 @@ function closeStatsModal() {
   statsModal.close();
 }
 
+function renderSoundDebugList() {
+  if (!soundDebugList) {
+    return;
+  }
+
+  soundDebugList.innerHTML = Object.entries(SOUND_ASSETS)
+    .map(
+      ([name, relativePath]) => `
+        <article class="sound-debug-row">
+          <div>
+            <p class="sound-debug-row-title">${name}</p>
+            <p class="sound-debug-row-meta">${assetUrl(relativePath)}</p>
+          </div>
+          <button class="secondary" type="button" data-sound-debug-play="${name}">Play</button>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function openSoundDebugModal() {
+  renderSoundDebugList();
+  soundDebugModal.showModal();
+}
+
+function closeSoundDebugModal() {
+  soundDebugModal.close();
+}
+
 function updateRangeDisplay(band) {
   activeBand = band;
   rangeMinNode.textContent = band;
@@ -533,17 +566,111 @@ function primeSounds() {
 }
 
 function playSoundEffect(name) {
-  if (!soundEnabled || !SOUND_ASSETS[name]) {
-    return;
+  return playSoundEffectWithDebug(name, { reason: "runtime", verbose: false, ignoreSoundEnabled: false });
+}
+
+function playSoundEffectWithDebug(name, { reason = "manual-debug", verbose = true, ignoreSoundEnabled = true } = {}) {
+  if (!SOUND_ASSETS[name]) {
+    if (verbose) {
+      console.log("[PuzzleMountain][SoundDebug]", {
+        event: "missing-asset",
+        name,
+        reason
+      });
+    }
+    return null;
   }
 
-  const audio = new Audio(soundUrl(name));
+  if (!soundEnabled && !ignoreSoundEnabled) {
+    if (verbose) {
+      console.log("[PuzzleMountain][SoundDebug]", {
+        event: "blocked-sound-disabled",
+        name,
+        reason,
+        soundEnabled
+      });
+    }
+    return null;
+  }
+
+  const url = soundUrl(name);
+  const audio = new Audio(url);
   audio.preload = "auto";
+
+  if (verbose) {
+    const startedAt = performance.now();
+    const log = (event, extra = {}) => {
+      console.log("[PuzzleMountain][SoundDebug]", {
+        name,
+        reason,
+        event,
+        url,
+        currentSrc: audio.currentSrc,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        currentTime: audio.currentTime,
+        duration: Number.isFinite(audio.duration) ? audio.duration : null,
+        paused: audio.paused,
+        muted: audio.muted,
+        volume: audio.volume,
+        error:
+          audio.error
+            ? {
+                code: audio.error.code,
+                message: audio.error.message ?? null
+              }
+            : null,
+        elapsedMs: Math.round(performance.now() - startedAt),
+        ...extra
+      });
+    };
+
+    [
+      "loadstart",
+      "loadedmetadata",
+      "loadeddata",
+      "canplay",
+      "canplaythrough",
+      "play",
+      "playing",
+      "pause",
+      "ended",
+      "error",
+      "stalled",
+      "suspend",
+      "abort"
+    ].forEach((eventName) => {
+      audio.addEventListener(eventName, () => log(eventName));
+    });
+
+    log("created", { soundEnabled });
+  }
 
   const playback = audio.play();
   if (playback && typeof playback.catch === "function") {
-    playback.catch(() => {});
+    playback
+      .then(() => {
+        if (verbose) {
+          console.log("[PuzzleMountain][SoundDebug]", {
+            name,
+            reason,
+            event: "play-promise-resolved",
+            url
+          });
+        }
+      })
+      .catch((error) => {
+        console.log("[PuzzleMountain][SoundDebug]", {
+          name,
+          reason,
+          event: "play-promise-rejected",
+          url,
+          message: error?.message ?? String(error)
+        });
+      });
   }
+
+  return audio;
 }
 
 function isCastleMove(move) {
@@ -981,6 +1108,10 @@ statsButton.addEventListener("click", () => {
   openStatsModal();
 });
 
+soundDebugButton.addEventListener("click", () => {
+  openSoundDebugModal();
+});
+
 document.addEventListener("click", (event) => {
   if (!settingsButton || !settingsDropdown) {
     return;
@@ -1017,6 +1148,34 @@ statsModal.addEventListener("click", (event) => {
 statsModal.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeStatsModal();
+});
+
+soundDebugCloseButton.addEventListener("click", () => {
+  closeSoundDebugModal();
+});
+
+soundDebugModal.addEventListener("click", (event) => {
+  if (event.target === soundDebugModal) {
+    closeSoundDebugModal();
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  const soundName = target.dataset.soundDebugPlay;
+  if (!soundName) {
+    return;
+  }
+
+  playSoundEffectWithDebug(soundName, { reason: "manual-debug", verbose: true });
+});
+
+soundDebugModal.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeSoundDebugModal();
 });
 
 levelForm.addEventListener("submit", (event) => {

@@ -91,6 +91,7 @@
               </div>
             </div>
             <button id="stats-button" class="secondary" type="button">Stats</button>
+            <button id="sound-debug-button" class="secondary" type="button">Debug</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
           </div>
@@ -124,6 +125,19 @@
             <div id="weak-themes" class="stats-list"></div>
           </section>
         </div>
+      </div>
+    </dialog>
+
+    <dialog id="sound-debug-modal" class="stats-modal">
+      <div class="stats-modal-card">
+        <div class="stats-modal-header">
+          <div>
+            <p class="label">Sound debug</p>
+            <h2 class="stats-modal-title">Manual sound playback</h2>
+          </div>
+          <button id="sound-debug-close-button" class="secondary" type="button">Close</button>
+        </div>
+        <div id="sound-debug-list" class="sound-debug-list"></div>
       </div>
     </dialog>
 

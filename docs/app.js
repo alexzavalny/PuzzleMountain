@@ -5372,6 +5372,7 @@
   var maxLevelInput = document.getElementById("max-level-input");
   var makeLastMoveToggle = document.getElementById("make-last-move-toggle");
   var statsButton = document.getElementById("stats-button");
+  var soundDebugButton = document.getElementById("sound-debug-button");
   var nextButton = document.getElementById("next-button");
   var lichessLink = document.getElementById("lichess-link");
   var rangeMinNode = document.getElementById("range-min");
@@ -5384,6 +5385,9 @@
   var messageBodyNode = document.getElementById("message-body");
   var statsModal = document.getElementById("stats-modal");
   var statsCloseButton = document.getElementById("stats-close-button");
+  var soundDebugModal = document.getElementById("sound-debug-modal");
+  var soundDebugCloseButton = document.getElementById("sound-debug-close-button");
+  var soundDebugList = document.getElementById("sound-debug-list");
   var strongThemesNode = document.getElementById("strong-themes");
   var weakThemesNode = document.getElementById("weak-themes");
   var BASE_URL = new URL(".", window.location.href);
@@ -5658,6 +5662,29 @@
   function closeStatsModal() {
     statsModal.close();
   }
+  function renderSoundDebugList() {
+    if (!soundDebugList) {
+      return;
+    }
+    soundDebugList.innerHTML = Object.entries(SOUND_ASSETS).map(
+      ([name, relativePath]) => `
+        <article class="sound-debug-row">
+          <div>
+            <p class="sound-debug-row-title">${name}</p>
+            <p class="sound-debug-row-meta">${assetUrl(relativePath)}</p>
+          </div>
+          <button class="secondary" type="button" data-sound-debug-play="${name}">Play</button>
+        </article>
+      `
+    ).join("");
+  }
+  function openSoundDebugModal() {
+    renderSoundDebugList();
+    soundDebugModal.showModal();
+  }
+  function closeSoundDebugModal() {
+    soundDebugModal.close();
+  }
   function updateRangeDisplay(band) {
     activeBand = band;
     rangeMinNode.textContent = band;
@@ -5791,16 +5818,98 @@
     });
   }
   function playSoundEffect(name) {
-    if (!soundEnabled || !SOUND_ASSETS[name]) {
-      return;
+    return playSoundEffectWithDebug(name, { reason: "runtime", verbose: false, ignoreSoundEnabled: false });
+  }
+  function playSoundEffectWithDebug(name, { reason = "manual-debug", verbose = true, ignoreSoundEnabled = true } = {}) {
+    if (!SOUND_ASSETS[name]) {
+      if (verbose) {
+        console.log("[PuzzleMountain][SoundDebug]", {
+          event: "missing-asset",
+          name,
+          reason
+        });
+      }
+      return null;
     }
-    const audio = new Audio(soundUrl(name));
+    if (!soundEnabled && !ignoreSoundEnabled) {
+      if (verbose) {
+        console.log("[PuzzleMountain][SoundDebug]", {
+          event: "blocked-sound-disabled",
+          name,
+          reason,
+          soundEnabled
+        });
+      }
+      return null;
+    }
+    const url = soundUrl(name);
+    const audio = new Audio(url);
     audio.preload = "auto";
+    if (verbose) {
+      const startedAt = performance.now();
+      const log = (event, extra = {}) => {
+        console.log("[PuzzleMountain][SoundDebug]", {
+          name,
+          reason,
+          event,
+          url,
+          currentSrc: audio.currentSrc,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          currentTime: audio.currentTime,
+          duration: Number.isFinite(audio.duration) ? audio.duration : null,
+          paused: audio.paused,
+          muted: audio.muted,
+          volume: audio.volume,
+          error: audio.error ? {
+            code: audio.error.code,
+            message: audio.error.message ?? null
+          } : null,
+          elapsedMs: Math.round(performance.now() - startedAt),
+          ...extra
+        });
+      };
+      [
+        "loadstart",
+        "loadedmetadata",
+        "loadeddata",
+        "canplay",
+        "canplaythrough",
+        "play",
+        "playing",
+        "pause",
+        "ended",
+        "error",
+        "stalled",
+        "suspend",
+        "abort"
+      ].forEach((eventName) => {
+        audio.addEventListener(eventName, () => log(eventName));
+      });
+      log("created", { soundEnabled });
+    }
     const playback = audio.play();
     if (playback && typeof playback.catch === "function") {
-      playback.catch(() => {
+      playback.then(() => {
+        if (verbose) {
+          console.log("[PuzzleMountain][SoundDebug]", {
+            name,
+            reason,
+            event: "play-promise-resolved",
+            url
+          });
+        }
+      }).catch((error) => {
+        console.log("[PuzzleMountain][SoundDebug]", {
+          name,
+          reason,
+          event: "play-promise-rejected",
+          url,
+          message: error?.message ?? String(error)
+        });
       });
     }
+    return audio;
   }
   function playMoveSound(move3) {
     if (move3.captured) {
@@ -6153,6 +6262,9 @@
   statsButton.addEventListener("click", () => {
     openStatsModal();
   });
+  soundDebugButton.addEventListener("click", () => {
+    openSoundDebugModal();
+  });
   document.addEventListener("click", (event) => {
     if (!settingsButton || !settingsDropdown) {
       return;
@@ -6182,6 +6294,28 @@
   statsModal.addEventListener("cancel", (event) => {
     event.preventDefault();
     closeStatsModal();
+  });
+  soundDebugCloseButton.addEventListener("click", () => {
+    closeSoundDebugModal();
+  });
+  soundDebugModal.addEventListener("click", (event) => {
+    if (event.target === soundDebugModal) {
+      closeSoundDebugModal();
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const soundName = target.dataset.soundDebugPlay;
+    if (!soundName) {
+      return;
+    }
+    playSoundEffectWithDebug(soundName, { reason: "manual-debug", verbose: true });
+  });
+  soundDebugModal.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeSoundDebugModal();
   });
   levelForm.addEventListener("submit", (event) => {
     event.preventDefault();

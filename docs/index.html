@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=391851a547c9">
+    <link rel="stylesheet" href="./styles.css?v=aa27de420310">
   </head>
   <body>
     <main class="shell">
@@ -91,6 +91,7 @@
               </div>
             </div>
             <button id="stats-button" class="secondary" type="button">Stats</button>
+            <button id="sound-debug-button" class="secondary" type="button">Debug</button>
             <button id="next-button" class="primary" type="button" disabled>Next puzzle</button>
             <a id="lichess-link" class="secondary hidden" href="#" target="_blank" rel="noreferrer">Open in Lichess</a>
           </div>
@@ -127,6 +128,19 @@
       </div>
     </dialog>
 
-    <script src="./app.js?v=391851a547c9"></script>
+    <dialog id="sound-debug-modal" class="stats-modal">
+      <div class="stats-modal-card">
+        <div class="stats-modal-header">
+          <div>
+            <p class="label">Sound debug</p>
+            <h2 class="stats-modal-title">Manual sound playback</h2>
+          </div>
+          <button id="sound-debug-close-button" class="secondary" type="button">Close</button>
+        </div>
+        <div id="sound-debug-list" class="sound-debug-list"></div>
+      </div>
+    </dialog>
+
+    <script src="./app.js?v=aa27de420310"></script>
   </body>
 </html>

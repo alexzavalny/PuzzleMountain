@@ -390,6 +390,39 @@ body {
   gap: 10px;
 }
 
+.sound-debug-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sound-debug-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(109, 83, 52, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.sound-debug-row-title,
+.sound-debug-row-meta {
+  margin: 0;
+}
+
+.sound-debug-row-title {
+  font-weight: 700;
+}
+
+.sound-debug-row-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
 .stats-empty,
 .stats-item-meta {
   margin: 0;
