@@ -10,6 +10,7 @@ const hintButton = document.getElementById("hint-button");
 const settingsButton = document.getElementById("settings-button");
 const settingsDropdown = document.getElementById("settings-dropdown");
 const flipToggle = document.getElementById("flip-toggle");
+const soundToggle = document.getElementById("sound-toggle");
 const maxLevelInput = document.getElementById("max-level-input");
 const makeLastMoveToggle = document.getElementById("make-last-move-toggle");
 const statsButton = document.getElementById("stats-button");
@@ -31,9 +32,18 @@ const weakThemesNode = document.getElementById("weak-themes");
 const BASE_URL = new URL(".", window.location.href);
 const THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
 const MAX_LEVEL_STORAGE_KEY = "puzzlemountain.maxLevel.v1";
+const SOUND_ENABLED_STORAGE_KEY = "puzzlemountain.soundEnabled.v1";
 const SOLVED_MESSAGE_DELAY_MS = 1400;
 const SETUP_MOVE_REPLAY_DELAY_MS = 450;
 const ABSOLUTE_MAX_LEVEL = 66;
+const SOUND_ASSETS = Object.freeze({
+  move: "audio/move.ogg",
+  capture: "audio/capture.ogg",
+  castle: "audio/castle.ogg",
+  check: "audio/check.ogg",
+  success: "audio/success.ogg",
+  error: "audio/error.ogg"
+});
 
 let metadata = null;
 let ground = null;
@@ -50,6 +60,7 @@ let shouldRestorePuzzleFromQuery = true;
 let currentLastMove = [];
 let playerColor = "white";
 let isBoardFlipped = false;
+let soundEnabled = true;
 let shouldAnimateSetupMove = false;
 let isAnimatingSetupMove = false;
 let hintedSquare = null;
@@ -57,6 +68,7 @@ let puzzleHistory = [];
 let solvedFlashTimeout = null;
 let setupMoveReplayTimeout = null;
 let preloadingBands = new Set();
+let soundUrlCache = new Map();
 let firstAttemptState = {
   failed: false,
   recorded: false
@@ -64,6 +76,14 @@ let firstAttemptState = {
 
 function assetUrl(relativePath) {
   return new URL(relativePath, BASE_URL).toString();
+}
+
+function soundUrl(name) {
+  if (!soundUrlCache.has(name)) {
+    soundUrlCache.set(name, assetUrl(SOUND_ASSETS[name]));
+  }
+
+  return soundUrlCache.get(name);
 }
 
 function lichessUrlForColor(url, color) {
@@ -171,6 +191,24 @@ function writeConfiguredMaxLevel(level) {
     window.localStorage.setItem(MAX_LEVEL_STORAGE_KEY, String(level));
   } catch (error) {
     console.warn("[PuzzleMountain] Could not persist max level", error);
+  }
+}
+
+function readSoundEnabled() {
+  try {
+    const raw = window.localStorage.getItem(SOUND_ENABLED_STORAGE_KEY);
+    return raw === null ? true : raw === "true";
+  } catch (error) {
+    console.warn("[PuzzleMountain] Could not read sound preference", error);
+    return true;
+  }
+}
+
+function writeSoundEnabled(enabled) {
+  try {
+    window.localStorage.setItem(SOUND_ENABLED_STORAGE_KEY, String(Boolean(enabled)));
+  } catch (error) {
+    console.warn("[PuzzleMountain] Could not persist sound preference", error);
   }
 }
 
@@ -461,17 +499,78 @@ function syncFlipAccessibilityState() {
   syncMenuCheckboxState(flipToggle);
 }
 
+function syncSoundAccessibilityState() {
+  syncMenuCheckboxState(soundToggle);
+}
+
 function syncMakeLastMoveAccessibilityState() {
   syncMenuCheckboxState(makeLastMoveToggle);
 }
 
 function syncMenuCheckboxState(input) {
+  if (!input) {
+    return;
+  }
+
   const option = input.closest(".settings-option");
   if (!option) {
     return;
   }
 
   option.setAttribute("aria-checked", input.checked ? "true" : "false");
+}
+
+function applySoundEnabled(enabled) {
+  soundEnabled = Boolean(enabled);
+  if (soundToggle) {
+    soundToggle.checked = soundEnabled;
+  }
+  syncSoundAccessibilityState();
+}
+
+function primeSounds() {
+  Object.keys(SOUND_ASSETS).forEach((name) => {
+    const audio = new Audio(soundUrl(name));
+    audio.preload = "auto";
+    audio.load();
+  });
+}
+
+function playSoundEffect(name) {
+  if (!soundEnabled || !SOUND_ASSETS[name]) {
+    return;
+  }
+
+  const audio = new Audio(soundUrl(name));
+  audio.preload = "auto";
+
+  const playback = audio.play();
+  if (playback && typeof playback.catch === "function") {
+    playback.catch(() => {});
+  }
+}
+
+function isCastleMove(move) {
+  return move.flags.includes("k") || move.flags.includes("q");
+}
+
+function playMoveSound(move) {
+  if (isCastleMove(move)) {
+    playSoundEffect("castle");
+    return;
+  }
+
+  if (move.captured) {
+    playSoundEffect("capture");
+    return;
+  }
+
+  if (chess.inCheck()) {
+    playSoundEffect("check");
+    return;
+  }
+
+  playSoundEffect("move");
 }
 
 function syncGround() {
@@ -719,6 +818,7 @@ async function handleSolved() {
 
   solvedCurrentPuzzle = true;
   updateHintControl();
+  playSoundEffect("success");
   setMessage(
     "Correct",
     shouldIncreaseLevel
@@ -754,6 +854,7 @@ function handleFailure() {
   currentLastMove = [];
   clearHint();
   resetGroundToCurrentPosition();
+  playSoundEffect("error");
   setMessage(
     "Wrong",
     shouldDropLevel
@@ -771,10 +872,16 @@ function playExpectedReplyIfNeeded() {
   }
 
   const reply = uciToMove(activePuzzle.solution[solutionIndex]);
-  chess.move(reply);
+  const result = chess.move(reply);
+  if (!result) {
+    handleLoadError(new Error("Could not play the puzzle reply."));
+    return;
+  }
+
   currentLastMove = [reply.from, reply.to];
   solutionIndex += 1;
   syncGround();
+  playMoveSound(result);
 
   if (solutionIndex >= activePuzzle.solution.length) {
     handleSolved();
@@ -807,6 +914,7 @@ function handleUserMove(orig, dest) {
   solutionIndex += 1;
   clearHint();
   syncGround();
+  playMoveSound(result);
   window.setTimeout(playExpectedReplyIfNeeded, 350);
 }
 
@@ -864,6 +972,11 @@ flipToggle.addEventListener("change", () => {
   }
 
   syncGround();
+});
+
+soundToggle.addEventListener("change", () => {
+  applySoundEnabled(soundToggle.checked);
+  writeSoundEnabled(soundEnabled);
 });
 
 makeLastMoveToggle.addEventListener("change", () => {
@@ -953,6 +1066,8 @@ maxLevelInput.addEventListener("change", () => {
 async function init() {
   try {
     configuredMaxLevel = readConfiguredMaxLevel();
+    applySoundEnabled(readSoundEnabled());
+    primeSounds();
     syncMaxLevelInput();
     await loadMetadata();
 
@@ -970,6 +1085,7 @@ async function init() {
 updateHistoryControls();
 updateHintControl();
 syncFlipAccessibilityState();
+syncSoundAccessibilityState();
 syncMakeLastMoveAccessibilityState();
 setBoardLoadingState(true, "Preparing board...");
 init();

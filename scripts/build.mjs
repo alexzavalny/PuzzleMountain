@@ -7,6 +7,8 @@ const rootDir = process.cwd();
 const staticBandsDir = path.join(rootDir, "public", "data", "puzzle_bands");
 const docsDir = path.join(rootDir, "docs");
 const docsBandsDir = path.join(docsDir, "data", "puzzle_bands");
+const audioDir = path.join(rootDir, "public", "audio");
+const docsAudioDir = path.join(docsDir, "audio");
 
 const imageFiles = [
   "black.bishop.png",
@@ -65,6 +67,7 @@ async function main() {
       fs.copyFile(path.join(rootDir, "img", file), path.join(docsDir, "img", file))
     )
   );
+  await fs.cp(audioDir, docsAudioDir, { recursive: true });
 
   const metadataPath = path.join(staticBandsDir, "metadata.json");
   const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));

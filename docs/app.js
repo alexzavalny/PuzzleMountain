@@ -5368,6 +5368,7 @@
   var settingsButton = document.getElementById("settings-button");
   var settingsDropdown = document.getElementById("settings-dropdown");
   var flipToggle = document.getElementById("flip-toggle");
+  var soundToggle = document.getElementById("sound-toggle");
   var maxLevelInput = document.getElementById("max-level-input");
   var makeLastMoveToggle = document.getElementById("make-last-move-toggle");
   var statsButton = document.getElementById("stats-button");
@@ -5388,9 +5389,18 @@
   var BASE_URL = new URL(".", window.location.href);
   var THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
   var MAX_LEVEL_STORAGE_KEY = "puzzlemountain.maxLevel.v1";
+  var SOUND_ENABLED_STORAGE_KEY = "puzzlemountain.soundEnabled.v1";
   var SOLVED_MESSAGE_DELAY_MS = 1400;
   var SETUP_MOVE_REPLAY_DELAY_MS = 450;
   var ABSOLUTE_MAX_LEVEL = 66;
+  var SOUND_ASSETS = Object.freeze({
+    move: "audio/move.ogg",
+    capture: "audio/capture.ogg",
+    castle: "audio/castle.ogg",
+    check: "audio/check.ogg",
+    success: "audio/success.ogg",
+    error: "audio/error.ogg"
+  });
   var metadata = null;
   var ground = null;
   var chess = null;
@@ -5406,6 +5416,7 @@
   var currentLastMove = [];
   var playerColor = "white";
   var isBoardFlipped = false;
+  var soundEnabled = true;
   var shouldAnimateSetupMove = false;
   var isAnimatingSetupMove = false;
   var hintedSquare = null;
@@ -5413,12 +5424,19 @@
   var solvedFlashTimeout = null;
   var setupMoveReplayTimeout = null;
   var preloadingBands = /* @__PURE__ */ new Set();
+  var soundUrlCache = /* @__PURE__ */ new Map();
   var firstAttemptState = {
     failed: false,
     recorded: false
   };
   function assetUrl(relativePath) {
     return new URL(relativePath, BASE_URL).toString();
+  }
+  function soundUrl(name) {
+    if (!soundUrlCache.has(name)) {
+      soundUrlCache.set(name, assetUrl(SOUND_ASSETS[name]));
+    }
+    return soundUrlCache.get(name);
   }
   function lichessUrlForColor(url, color) {
     const parsed = new URL(url);
@@ -5508,6 +5526,22 @@
       window.localStorage.setItem(MAX_LEVEL_STORAGE_KEY, String(level));
     } catch (error) {
       console.warn("[PuzzleMountain] Could not persist max level", error);
+    }
+  }
+  function readSoundEnabled() {
+    try {
+      const raw = window.localStorage.getItem(SOUND_ENABLED_STORAGE_KEY);
+      return raw === null ? true : raw === "true";
+    } catch (error) {
+      console.warn("[PuzzleMountain] Could not read sound preference", error);
+      return true;
+    }
+  }
+  function writeSoundEnabled(enabled) {
+    try {
+      window.localStorage.setItem(SOUND_ENABLED_STORAGE_KEY, String(Boolean(enabled)));
+    } catch (error) {
+      console.warn("[PuzzleMountain] Could not persist sound preference", error);
     }
   }
   function syncMaxLevelInput() {
@@ -5730,15 +5764,65 @@
   function syncFlipAccessibilityState() {
     syncMenuCheckboxState(flipToggle);
   }
+  function syncSoundAccessibilityState() {
+    syncMenuCheckboxState(soundToggle);
+  }
   function syncMakeLastMoveAccessibilityState() {
     syncMenuCheckboxState(makeLastMoveToggle);
   }
   function syncMenuCheckboxState(input) {
+    if (!input) {
+      return;
+    }
     const option = input.closest(".settings-option");
     if (!option) {
       return;
     }
     option.setAttribute("aria-checked", input.checked ? "true" : "false");
+  }
+  function applySoundEnabled(enabled) {
+    soundEnabled = Boolean(enabled);
+    if (soundToggle) {
+      soundToggle.checked = soundEnabled;
+    }
+    syncSoundAccessibilityState();
+  }
+  function primeSounds() {
+    Object.keys(SOUND_ASSETS).forEach((name) => {
+      const audio = new Audio(soundUrl(name));
+      audio.preload = "auto";
+      audio.load();
+    });
+  }
+  function playSoundEffect(name) {
+    if (!soundEnabled || !SOUND_ASSETS[name]) {
+      return;
+    }
+    const audio = new Audio(soundUrl(name));
+    audio.preload = "auto";
+    const playback = audio.play();
+    if (playback && typeof playback.catch === "function") {
+      playback.catch(() => {
+      });
+    }
+  }
+  function isCastleMove(move3) {
+    return move3.flags.includes("k") || move3.flags.includes("q");
+  }
+  function playMoveSound(move3) {
+    if (isCastleMove(move3)) {
+      playSoundEffect("castle");
+      return;
+    }
+    if (move3.captured) {
+      playSoundEffect("capture");
+      return;
+    }
+    if (chess.inCheck()) {
+      playSoundEffect("check");
+      return;
+    }
+    playSoundEffect("move");
   }
   function syncGround() {
     const canInteract = !isAnimatingSetupMove;
@@ -5947,6 +6031,7 @@
     }
     solvedCurrentPuzzle = true;
     updateHintControl();
+    playSoundEffect("success");
     setMessage(
       "Correct",
       shouldIncreaseLevel ? "You climbed 50 rating points. Loading the next puzzle." : firstAttemptState.failed ? "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle." : "Solved. You are already at your max level, so the next puzzle stays in this range.",
@@ -5972,6 +6057,7 @@
     currentLastMove = [];
     clearHint();
     resetGroundToCurrentPosition();
+    playSoundEffect("error");
     setMessage(
       "Wrong",
       shouldDropLevel ? "That move does not match the solution. You dropped one level." : "That move does not match the solution. You already took the level penalty for this puzzle.",
@@ -5985,10 +6071,15 @@
       return;
     }
     const reply = uciToMove(activePuzzle.solution[solutionIndex]);
-    chess.move(reply);
+    const result = chess.move(reply);
+    if (!result) {
+      handleLoadError(new Error("Could not play the puzzle reply."));
+      return;
+    }
     currentLastMove = [reply.from, reply.to];
     solutionIndex += 1;
     syncGround();
+    playMoveSound(result);
     if (solutionIndex >= activePuzzle.solution.length) {
       handleSolved();
     } else {
@@ -6015,6 +6106,7 @@
     solutionIndex += 1;
     clearHint();
     syncGround();
+    playMoveSound(result);
     window.setTimeout(playExpectedReplyIfNeeded, 350);
   }
   function handleLoadError(error) {
@@ -6059,6 +6151,10 @@
       return;
     }
     syncGround();
+  });
+  soundToggle.addEventListener("change", () => {
+    applySoundEnabled(soundToggle.checked);
+    writeSoundEnabled(soundEnabled);
   });
   makeLastMoveToggle.addEventListener("change", () => {
     shouldAnimateSetupMove = makeLastMoveToggle.checked;
@@ -6130,6 +6226,8 @@
   async function init() {
     try {
       configuredMaxLevel = readConfiguredMaxLevel();
+      applySoundEnabled(readSoundEnabled());
+      primeSounds();
       syncMaxLevelInput();
       await loadMetadata();
       const requestedLevel = parsedLevelFromQuery();
@@ -6144,6 +6242,7 @@
   updateHistoryControls();
   updateHintControl();
   syncFlipAccessibilityState();
+  syncSoundAccessibilityState();
   syncMakeLastMoveAccessibilityState();
   setBoardLoadingState(true, "Preparing board...");
   init();
