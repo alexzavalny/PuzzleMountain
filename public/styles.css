@@ -305,8 +305,19 @@ body {
   white-space: nowrap;
 }
 
+.settings-option-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .settings-option:hover {
   background: rgba(198, 93, 46, 0.08);
+}
+
+.settings-text-label {
+  font-size: 0.95rem;
+  line-height: 1.2;
 }
 
 .toggle-chip-input {
@@ -319,6 +330,16 @@ body {
 
 .toggle-chip-label {
   line-height: 1;
+}
+
+.settings-number-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(109, 83, 52, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  color: var(--text);
 }
 
 .stats-modal {

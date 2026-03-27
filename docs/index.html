@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css?v=a384174e5b2a">
+    <link rel="stylesheet" href="./styles.css?v=1f1cf2fada6b">
   </head>
   <body>
     <main class="shell">
@@ -28,7 +28,7 @@
           </div>
           <div class="status-panel-side">
             <form id="level-form" class="level-form">
-              <input id="level-input" class="level-input" type="number" min="0" step="1" value="0">
+              <input id="level-input" class="level-input" type="number" min="0" max="66" step="1" value="0">
               <button class="secondary level-button" type="submit">Go</button>
             </form>
           </div>
@@ -76,6 +76,10 @@
                   <input id="flip-toggle" class="toggle-chip-input" type="checkbox">
                   <span class="toggle-chip-label">Flip</span>
                 </label>
+                <label class="settings-option settings-option-stack" for="max-level-input">
+                  <span class="settings-text-label">Max level</span>
+                  <input id="max-level-input" class="settings-number-input" type="number" min="0" max="66" step="1" value="66">
+                </label>
                 <label class="settings-option" for="make-last-move-toggle" role="menuitemcheckbox" aria-checked="false">
                   <input id="make-last-move-toggle" class="toggle-chip-input" type="checkbox">
                   <span class="toggle-chip-label">Make last move</span>
@@ -119,6 +123,6 @@
       </div>
     </dialog>
 
-    <script src="./app.js?v=a384174e5b2a"></script>
+    <script src="./app.js?v=1f1cf2fada6b"></script>
   </body>
 </html>

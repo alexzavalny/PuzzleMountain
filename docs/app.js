@@ -5368,6 +5368,7 @@
   var settingsButton = document.getElementById("settings-button");
   var settingsDropdown = document.getElementById("settings-dropdown");
   var flipToggle = document.getElementById("flip-toggle");
+  var maxLevelInput = document.getElementById("max-level-input");
   var makeLastMoveToggle = document.getElementById("make-last-move-toggle");
   var statsButton = document.getElementById("stats-button");
   var nextButton = document.getElementById("next-button");
@@ -5386,8 +5387,10 @@
   var weakThemesNode = document.getElementById("weak-themes");
   var BASE_URL = new URL(".", window.location.href);
   var THEME_STATS_STORAGE_KEY = "puzzlemountain.themeStats.v1";
+  var MAX_LEVEL_STORAGE_KEY = "puzzlemountain.maxLevel.v1";
   var SOLVED_MESSAGE_DELAY_MS = 1400;
   var SETUP_MOVE_REPLAY_DELAY_MS = 450;
+  var ABSOLUTE_MAX_LEVEL = 66;
   var metadata = null;
   var ground = null;
   var chess = null;
@@ -5395,6 +5398,7 @@
   var activeBand = null;
   var currentPuzzleBand = null;
   var activeLevel = 0;
+  var configuredMaxLevel = ABSOLUTE_MAX_LEVEL;
   var solutionIndex = 0;
   var solvedCurrentPuzzle = false;
   var bandCache = /* @__PURE__ */ new Map();
@@ -5466,7 +5470,7 @@
     return color === "w" ? "white" : "black";
   }
   function levelForBand(band) {
-    return Math.floor(band / 50);
+    return clampLevel(Math.floor(band / 50));
   }
   function rangeMaxForBand(band) {
     return band + 49;
@@ -5476,6 +5480,54 @@
     activeLevel = level;
     levelValueNode.textContent = level;
     levelInput.value = level;
+  }
+  function clampLevel(level, maxLevel = ABSOLUTE_MAX_LEVEL) {
+    const normalizedLevel = Number(level);
+    if (!Number.isFinite(normalizedLevel)) {
+      return 0;
+    }
+    return Math.min(Math.max(Math.trunc(normalizedLevel), 0), maxLevel);
+  }
+  function effectiveMaxLevel() {
+    return clampLevel(configuredMaxLevel);
+  }
+  function readConfiguredMaxLevel() {
+    try {
+      const raw = window.localStorage.getItem(MAX_LEVEL_STORAGE_KEY);
+      if (raw === null) {
+        return ABSOLUTE_MAX_LEVEL;
+      }
+      return clampLevel(Number(raw));
+    } catch (error) {
+      console.warn("[PuzzleMountain] Could not read max level", error);
+      return ABSOLUTE_MAX_LEVEL;
+    }
+  }
+  function writeConfiguredMaxLevel(level) {
+    try {
+      window.localStorage.setItem(MAX_LEVEL_STORAGE_KEY, String(level));
+    } catch (error) {
+      console.warn("[PuzzleMountain] Could not persist max level", error);
+    }
+  }
+  function syncMaxLevelInput() {
+    if (!maxLevelInput) {
+      return;
+    }
+    maxLevelInput.value = String(effectiveMaxLevel());
+    levelInput.max = String(effectiveMaxLevel());
+  }
+  function applyConfiguredMaxLevel(level) {
+    configuredMaxLevel = clampLevel(level);
+    syncMaxLevelInput();
+    if (!metadata) {
+      return;
+    }
+    if (activeLevel > effectiveMaxLevel()) {
+      activeBand = normalizedBandForLevel(effectiveMaxLevel());
+      updateRangeDisplay(activeBand);
+      updateUrl({ level: activeLevel, puzzleId: null });
+    }
   }
   function readThemeStats() {
     try {
@@ -5595,14 +5647,15 @@
   function parsedLevelFromQuery() {
     const raw = new URLSearchParams(window.location.search).get("level");
     const value = Number(raw);
-    return Number.isInteger(value) && value >= 0 ? value : null;
+    return Number.isInteger(value) && value >= 0 ? clampLevel(value) : null;
   }
   function puzzleIdFromQuery() {
     return new URLSearchParams(window.location.search).get("puzzle");
   }
   function normalizedBandForLevel(level) {
-    const targetBand = level * metadata.bandSize;
-    return metadata.availableBands.find((band) => band >= targetBand) ?? metadata.lowestBand;
+    const clampedLevel = clampLevel(level, effectiveMaxLevel());
+    const targetBand = clampedLevel * metadata.bandSize;
+    return metadata.availableBands.find((band) => band >= targetBand) ?? metadata.availableBands.at(-1) ?? metadata.lowestBand;
   }
   function pickRandomPuzzle(puzzles, excludedPuzzleId = null) {
     if (!puzzles.length) {
@@ -5785,7 +5838,7 @@
     if (!metadata) {
       return;
     }
-    const nextBand = normalizedBandForLevel(activeLevel + 1);
+    const nextBand = normalizedBandForLevel(Math.min(activeLevel + 1, effectiveMaxLevel()));
     if (nextBand !== activeBand) {
       prefetchBand(nextBand);
     }
@@ -5888,7 +5941,7 @@
     }
   }
   async function handleSolved() {
-    const shouldIncreaseLevel = !firstAttemptState.failed;
+    const shouldIncreaseLevel = !firstAttemptState.failed && activeLevel < effectiveMaxLevel();
     if (shouldIncreaseLevel) {
       recordThemeOutcome("solved");
     }
@@ -5896,7 +5949,7 @@
     updateHintControl();
     setMessage(
       "Correct",
-      shouldIncreaseLevel ? "You climbed 50 rating points. Loading the next puzzle." : "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle.",
+      shouldIncreaseLevel ? "You climbed 50 rating points. Loading the next puzzle." : firstAttemptState.failed ? "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle." : "Solved. You are already at your max level, so the next puzzle stays in this range.",
       "success"
     );
     flashSolvedMessage();
@@ -6054,8 +6107,8 @@
   levelForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const requestedLevel = Number(levelInput.value);
-    if (!Number.isInteger(requestedLevel) || requestedLevel < 0) {
-      setMessage("Invalid level", "Level must be a whole number 0 or greater.", "danger");
+    if (!Number.isInteger(requestedLevel) || requestedLevel < 0 || requestedLevel > effectiveMaxLevel()) {
+      setMessage("Invalid level", `Level must be a whole number from 0 to ${effectiveMaxLevel()}.`, "danger");
       return;
     }
     activeBand = normalizedBandForLevel(requestedLevel);
@@ -6063,10 +6116,24 @@
     updateUrl({ level: activeLevel, puzzleId: null });
     loadPuzzle().catch(handleLoadError);
   });
+  maxLevelInput.addEventListener("change", () => {
+    const requestedMaxLevel = Number(maxLevelInput.value);
+    if (!Number.isInteger(requestedMaxLevel) || requestedMaxLevel < 0 || requestedMaxLevel > ABSOLUTE_MAX_LEVEL) {
+      syncMaxLevelInput();
+      setMessage("Invalid max level", `Max level must be a whole number from 0 to ${ABSOLUTE_MAX_LEVEL}.`, "danger");
+      return;
+    }
+    writeConfiguredMaxLevel(requestedMaxLevel);
+    applyConfiguredMaxLevel(requestedMaxLevel);
+    loadPuzzle({ pushHistory: false }).catch(handleLoadError);
+  });
   async function init() {
     try {
+      configuredMaxLevel = readConfiguredMaxLevel();
+      syncMaxLevelInput();
       await loadMetadata();
       const requestedLevel = parsedLevelFromQuery();
+      applyConfiguredMaxLevel(configuredMaxLevel);
       activeBand = normalizedBandForLevel(requestedLevel ?? levelForBand(metadata.lowestBand));
       updateRangeDisplay(activeBand);
       await loadPuzzle({ useQueryPuzzle: shouldRestorePuzzleFromQuery });

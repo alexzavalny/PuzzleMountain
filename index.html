@@ -28,7 +28,7 @@
           </div>
           <div class="status-panel-side">
             <form id="level-form" class="level-form">
-              <input id="level-input" class="level-input" type="number" min="0" step="1" value="0">
+              <input id="level-input" class="level-input" type="number" min="0" max="66" step="1" value="0">
               <button class="secondary level-button" type="submit">Go</button>
             </form>
           </div>
@@ -75,6 +75,10 @@
                 <label class="settings-option" for="flip-toggle" role="menuitemcheckbox" aria-checked="false">
                   <input id="flip-toggle" class="toggle-chip-input" type="checkbox">
                   <span class="toggle-chip-label">Flip</span>
+                </label>
+                <label class="settings-option settings-option-stack" for="max-level-input">
+                  <span class="settings-text-label">Max level</span>
+                  <input id="max-level-input" class="settings-number-input" type="number" min="0" max="66" step="1" value="66">
                 </label>
                 <label class="settings-option" for="make-last-move-toggle" role="menuitemcheckbox" aria-checked="false">
                   <input id="make-last-move-toggle" class="toggle-chip-input" type="checkbox">
