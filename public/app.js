@@ -38,11 +38,7 @@ const SETUP_MOVE_REPLAY_DELAY_MS = 450;
 const ABSOLUTE_MAX_LEVEL = 66;
 const SOUND_ASSETS = Object.freeze({
   move: "audio/move.ogg",
-  capture: "audio/capture.ogg",
-  castle: "audio/castle.ogg",
-  check: "audio/check.ogg",
-  success: "audio/success.ogg",
-  error: "audio/error.ogg"
+  capture: "audio/capture.ogg"
 });
 
 let metadata = null;
@@ -555,18 +551,8 @@ function isCastleMove(move) {
 }
 
 function playMoveSound(move) {
-  if (isCastleMove(move)) {
-    playSoundEffect("castle");
-    return;
-  }
-
   if (move.captured) {
     playSoundEffect("capture");
-    return;
-  }
-
-  if (chess.inCheck()) {
-    playSoundEffect("check");
     return;
   }
 
@@ -818,7 +804,6 @@ async function handleSolved() {
 
   solvedCurrentPuzzle = true;
   updateHintControl();
-  playSoundEffect("success");
   setMessage(
     "Correct",
     shouldIncreaseLevel
@@ -854,7 +839,6 @@ function handleFailure() {
   currentLastMove = [];
   clearHint();
   resetGroundToCurrentPosition();
-  playSoundEffect("error");
   setMessage(
     "Wrong",
     shouldDropLevel

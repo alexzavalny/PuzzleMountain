@@ -5395,11 +5395,7 @@
   var ABSOLUTE_MAX_LEVEL = 66;
   var SOUND_ASSETS = Object.freeze({
     move: "audio/move.ogg",
-    capture: "audio/capture.ogg",
-    castle: "audio/castle.ogg",
-    check: "audio/check.ogg",
-    success: "audio/success.ogg",
-    error: "audio/error.ogg"
+    capture: "audio/capture.ogg"
   });
   var metadata = null;
   var ground = null;
@@ -5806,20 +5802,9 @@
       });
     }
   }
-  function isCastleMove(move3) {
-    return move3.flags.includes("k") || move3.flags.includes("q");
-  }
   function playMoveSound(move3) {
-    if (isCastleMove(move3)) {
-      playSoundEffect("castle");
-      return;
-    }
     if (move3.captured) {
       playSoundEffect("capture");
-      return;
-    }
-    if (chess.inCheck()) {
-      playSoundEffect("check");
       return;
     }
     playSoundEffect("move");
@@ -6031,7 +6016,6 @@
     }
     solvedCurrentPuzzle = true;
     updateHintControl();
-    playSoundEffect("success");
     setMessage(
       "Correct",
       shouldIncreaseLevel ? "You climbed 50 rating points. Loading the next puzzle." : firstAttemptState.failed ? "Solved, but because you made a mistake on this puzzle, your level stays the same. Loading the next puzzle." : "Solved. You are already at your max level, so the next puzzle stays in this range.",
@@ -6057,7 +6041,6 @@
     currentLastMove = [];
     clearHint();
     resetGroundToCurrentPosition();
-    playSoundEffect("error");
     setMessage(
       "Wrong",
       shouldDropLevel ? "That move does not match the solution. You dropped one level." : "That move does not match the solution. You already took the level penalty for this puzzle.",
